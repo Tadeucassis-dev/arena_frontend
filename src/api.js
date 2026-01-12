@@ -26,3 +26,21 @@ export async function adicionarItemComanda(payload) {
   if (!res.ok) throw new Error((await res.text()) || 'Falha ao adicionar item na comanda');
   return res.json();
 }
+
+export async function abrirComanda(payload) {
+  const res = await fetch(`${BASE_URL}/comandas`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error((await res.text()) || 'Falha ao abrir comanda');
+  return res.json();
+}
+
+export async function fecharComanda(id) {
+  const res = await fetch(`${BASE_URL}/comandas/${id}/fechar`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error((await res.text()) || 'Falha ao fechar comanda');
+  return res.json();
+}

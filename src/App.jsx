@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import ProductList from './ProductList.jsx';
 import ProductForm from './ProductForm.jsx';
 import ComandaItemForm from './ComandaItemForm.jsx';
-import { getProdutos, criarProduto, adicionarItemComanda } from './api.js';
+import ComandaControl from './ComandaControl.jsx';
+import { getProdutos, criarProduto, adicionarItemComanda, abrirComanda, fecharComanda } from './api.js';
 import logoArena from './assets/logoArenaCesar.jpg';
 
 export default function App() {
   const [produtos, setProdutos] = useState([]);
   const [err, setErr] = useState('');
+  const [comandaId, setComandaId] = useState(null);
 
   async function loadProdutos() {
     setErr('');
@@ -32,6 +34,18 @@ export default function App() {
     return created;
   }
 
+  async function handleAbrirComanda(form) {
+    const comanda = await abrirComanda(form);
+    setComandaId(comanda.id);
+    return comanda;
+  }
+
+  async function handleFecharComanda(id) {
+    const c = await fecharComanda(id);
+    setComandaId(c.id);
+    return c;
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -49,7 +63,8 @@ export default function App() {
         {err && <div className="alert error">Erro: {err}</div>}
         <div className="grid">
           <ProductForm onCreate={handleCreateProduto} />
-          <ComandaItemForm produtos={produtos} onAddItem={handleAddItem} />
+          <ComandaControl onAbrirComanda={handleAbrirComanda} onSelecionar={setComandaId} comandaId={comandaId} onFecharComanda={handleFecharComanda} />
+          <ComandaItemForm produtos={produtos} onAddItem={handleAddItem} selectedComandaId={comandaId} />
         </div>
         <ProductList produtos={produtos} />
         <div className="status-bar">Backend: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}</div>

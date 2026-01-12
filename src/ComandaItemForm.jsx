@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function ComandaItemForm({ produtos, onAddItem }) {
+function ComandaItemForm({ produtos, onAddItem, selectedComandaId }) {
   const [comandaId, setComandaId] = useState('');
   const [produtoId, setProdutoId] = useState('');
   const [quantidade, setQuantidade] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+
+  useEffect(() => {
+    if (selectedComandaId != null) {
+      setComandaId(String(selectedComandaId));
+    }
+  }, [selectedComandaId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
