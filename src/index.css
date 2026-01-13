@@ -82,8 +82,30 @@ button:focus-visible { outline: 3px solid #b88f2d55; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px; }
 .status-bar { margin-top: 12px; color: var(--muted); font-size: 0.9rem; }
 
+.top-nav { display:flex; gap:16px; }
+.top-nav a { padding:8px 12px; border-radius:8px; background: var(--surface-2); }
+.top-nav a.active { background: #2a2a2a; }
+
 .card { background: var(--surface); border: 1px solid #2a2a2a; border-radius: 12px; padding: 16px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
 .card h2 { margin: 0 0 12px; font-size: 1.2rem; }
+
+.list-controls { display:grid; gap:12px; margin-bottom:12px; }
+.actions { display:flex; gap:8px; align-items:center; }
+.actions.wrap { flex-wrap:wrap; }
+.field { display:grid; gap:6px; }
+
+.list-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
+.list-card { display:grid; gap:8px; background: var(--surface); border:1px solid #2a2a2a; border-radius:12px; padding:12px; cursor:pointer; }
+.list-card:hover { background:#232323; }
+.list-card-header { display:flex; justify-content:space-between; align-items:center; }
+.list-card-body { display:grid; gap:4px; }
+.list-card-body .title { font-weight:700; }
+.list-card-actions { display:flex; gap:8px; }
+.empty { color: var(--muted); }
+
+.breadcrumbs { display:flex; gap:8px; align-items:center; color: var(--muted); margin-bottom:8px; }
+.meta-row { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+.actions-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
 
 .card form { display: grid; gap: 12px; }
 .card label { display: grid; gap: 6px; color: var(--muted); }
@@ -100,3 +122,7 @@ tbody tr:hover { background: #232323; }
 
 a { color: var(--brand); }
 a:hover { color: #b07f29; }
+
+.badge { display:inline-block; padding:2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+.badge.open { background: #103d1f; color: #2ee68d; border: 1px solid #205c36; }
+.badge.closed { background: #3d1010; color: #ff8b8b; border: 1px solid #5c2020; }

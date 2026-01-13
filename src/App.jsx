@@ -2,14 +2,23 @@ import React, { useEffect, useState } from 'react';
 import ProductList from './ProductList.jsx';
 import ProductForm from './ProductForm.jsx';
 import ComandaItemForm from './ComandaItemForm.jsx';
-import ComandaControl from './ComandaControl.jsx';
-import { getProdutos, criarProduto, adicionarItemComanda, abrirComanda, fecharComanda } from './api.js';
+
+import ComandaList from './ComandaList.jsx';
+import ComandaPage from './ComandaPage.jsx';
+import { getProdutos, criarProduto, adicionarItemComanda, abrirComanda, fecharComanda, buscarComandaPorNome, buscarComandasPorNome, listarComandas } from './api.js';
 import logoArena from './assets/logoArenaCesar.jpg';
 
 export default function App() {
   const [produtos, setProdutos] = useState([]);
   const [err, setErr] = useState('');
   const [comandaId, setComandaId] = useState(null);
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    if (!window.location.hash) window.location.hash = '#/comandas';
+    const f = () => setHash(window.location.hash || '#/comandas');
+    window.addEventListener('hashchange', f);
+    return () => window.removeEventListener('hashchange', f);
+  }, []);
 
   async function loadProdutos() {
     setErr('');
@@ -46,6 +55,22 @@ export default function App() {
     return c;
   }
 
+  async function handleBuscarPorNome(nome) {
+    const c = await buscarComandaPorNome(nome);
+    setComandaId(c.id);
+    return c;
+  }
+
+  async function handleBuscarLista(nome) {
+    const arr = await buscarComandasPorNome(nome);
+    return arr;
+  }
+
+  async function handleListarAbertas() {
+    const arr = await listarComandas('ABERTA');
+    return arr;
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -57,18 +82,50 @@ export default function App() {
               <span className="subtitle">Centro de Treinamento e Lazer</span>
             </div>
           </div>
+          <nav className="top-nav">
+            <a href="#/comandas" className={hash.startsWith('#/comandas') ? 'active' : ''}>Comandas</a>
+            <a href="#/produtos" className={hash === '#/produtos' ? 'active' : ''}>Produtos</a>
+          </nav>
         </div>
       </header>
       <main className="container">
-        {err && <div className="alert error">Erro: {err}</div>}
-        <div className="grid">
-          <ProductForm onCreate={handleCreateProduto} />
-          <ComandaControl onAbrirComanda={handleAbrirComanda} onSelecionar={setComandaId} comandaId={comandaId} onFecharComanda={handleFecharComanda} />
-          <ComandaItemForm produtos={produtos} onAddItem={handleAddItem} selectedComandaId={comandaId} />
-        </div>
-        <ProductList produtos={produtos} />
-        <div className="status-bar">Backend: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}</div>
+        {(() => {
+          const id = hash.startsWith('#/comandas/') ? Number(hash.split('/')[2]) : null;
+          if (id) {
+            return (
+              <ComandaPage
+                comandaId={id}
+                produtos={produtos}
+                onAddItem={handleAddItem}
+                onFecharComanda={handleFecharComanda}
+                onVoltar={() => { window.location.hash = '#/comandas'; }}
+              />
+            );
+          }
+          if (hash === '#/comandas') {
+            return (
+              <ComandaList
+                onSelecionar={(id2) => { setComandaId(id2); window.location.hash = `#/comandas/${id2}`; }}
+                onFecharComanda={handleFecharComanda}
+                onAbrirComanda={handleAbrirComanda}
+              />
+            );
+          }
+          if (hash === '#/produtos') {
+            return (
+              <div className="grid">
+                <ProductForm onCreate={handleCreateProduto} />
+                <ProductList produtos={produtos} />
+              </div>
+            );
+          }
+          return null;
+        })()}
       </main>
-    </div>
+      <div className="status-bar">Backend: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}</div>
+    </div> 
   );
 }
+
+    
+

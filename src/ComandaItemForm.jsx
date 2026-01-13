@@ -1,27 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 function ComandaItemForm({ produtos, onAddItem, selectedComandaId }) {
-  const [comandaId, setComandaId] = useState('');
+
   const [produtoId, setProdutoId] = useState('');
   const [quantidade, setQuantidade] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    if (selectedComandaId != null) {
-      setComandaId(String(selectedComandaId));
-    }
-  }, [selectedComandaId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setMsg(''); setErr('');
     try {
-      if (!comandaId || !produtoId || !quantidade) {
-        throw new Error('Informe comandaId, produto e quantidade');
+      if (!selectedComandaId || !produtoId || !quantidade) {
+        throw new Error('Selecione comanda, produto e quantidade');
       }
       const created = await onAddItem({
-        comandaId: Number(comandaId),
+        comandaId: Number(selectedComandaId),
         produtoId: Number(produtoId),
         quantidade: Number(quantidade)
       });
@@ -36,9 +31,7 @@ function ComandaItemForm({ produtos, onAddItem, selectedComandaId }) {
     <div className="card">
       <h2>Adicionar Item à Comanda</h2>
       <form onSubmit={handleSubmit}>
-        <label>Comanda ID
-          <input type="number" value={comandaId} onChange={e => setComandaId(e.target.value)} required />
-        </label>
+        <div style={{ marginBottom: 8 }}>Comanda atual: {selectedComandaId ?? '-'}</div>
         <label>Produto
           <select value={produtoId} onChange={e => setProdutoId(e.target.value)} required>
             <option value="">Selecione...</option>
