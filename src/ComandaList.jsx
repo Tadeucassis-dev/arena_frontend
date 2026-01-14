@@ -86,8 +86,8 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
     <div className="card">
       <h2>Comandas</h2>
       <div className="list-controls">
-        <div className="actions">
-          <label>Status
+        <div className="actions wrap">
+          <label className="field">Status
             <select value={status} onChange={e => setStatus(e.target.value)}>
               <option value="">Todas</option>
               <option value="ABERTA">ABERTA</option>
@@ -100,18 +100,18 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
           <button type="button" onClick={load} disabled={loading}>{loading ? 'Carregando...' : 'Atualizar'}</button>
         </div>
         <div className="open-form">
-          <div style={{ fontWeight: 600 }}>Abrir Comanda</div>
+          <div className="open-form-title">Abrir Comanda</div>
           <div className="actions wrap">
-            <label style={{ flex: '1 1 200px' }}>Nome
+            <label className="field grow-200">Nome
               <input value={openNome} onChange={e => setOpenNome(e.target.value)} />
             </label>
-            <label style={{ flex: '1 1 160px' }}>Tipo
+            <label className="field grow-160">Tipo
               <select value={openTipo} onChange={e => setOpenTipo(e.target.value)}>
                 <option value="DAY_USE">DAY_USE</option>
                 <option value="ALUNO">ALUNO</option>
               </select>
             </label>
-            <label style={{ flex: '1 1 160px' }}>Day Use (R$)
+            <label className="field grow-160">Day Use (R$)
               <input type="number" step="0.01" value={openValor} onChange={e => setOpenValor(e.target.value)} />
             </label>
             <button type="button" onClick={abrirNaLista}>Abrir na Lista</button>

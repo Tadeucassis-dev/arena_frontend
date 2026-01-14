@@ -70,7 +70,7 @@ button:focus-visible { outline: 3px solid #b88f2d55; }
 }
 
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
-.app-header { background: var(--surface); border-bottom: 1px solid #2a2a2a; position: sticky; top: 0; z-index: 10; }
+.app-header { background: var(--surface); border-bottom: 1px solid #2a2a2a; position: sticky; top: 0; z-index: 10; margin-bottom: 20px; }
 .header-content { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
 .brand-group { display: flex; align-items: center; gap: 12px; }
 .brand-logo { height: 56px; width: auto; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35)); }
@@ -93,6 +93,7 @@ button:focus-visible { outline: 3px solid #b88f2d55; }
 .actions { display:flex; gap:8px; align-items:center; }
 .actions.wrap { flex-wrap:wrap; }
 .field { display:grid; gap:6px; }
+.open-form-title { font-weight: 600; margin-bottom: 4px; }
 
 .list-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
 .list-card { display:grid; gap:8px; background: var(--surface); border:1px solid #2a2a2a; border-radius:12px; padding:12px; cursor:pointer; }
@@ -103,9 +104,53 @@ button:focus-visible { outline: 3px solid #b88f2d55; }
 .list-card-actions { display:flex; gap:8px; }
 .empty { color: var(--muted); }
 
+.products-cards { display: none; }
+
 .breadcrumbs { display:flex; gap:8px; align-items:center; color: var(--muted); margin-bottom:8px; }
 .meta-row { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
 .actions-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+
+.table-responsive { width: 100%; overflow-x: auto; }
+.table-responsive table { min-width: 520px; }
+
+@media (max-width: 1024px) {
+  .container { padding: 0 20px; }
+  .grid { grid-template-columns: 1fr 1fr; }
+  .list-cards { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+}
+@media (max-width: 768px) {
+  .app-header { margin-bottom: 24px; }
+  .container { padding: 0 16px; }
+  .header-content { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 0; }
+  .brand-group { gap: 8px; }
+  .brand-logo { height: 48px; }
+  .brand { font-size: 1.4rem; }
+  .subtitle { font-size: 0.85rem; }
+  .top-nav { flex-wrap: wrap; }
+  .grid { grid-template-columns: 1fr; }
+  .list-cards { grid-template-columns: 1fr; }
+  .actions { flex-direction: column; align-items: stretch; }
+  .open-form .actions { flex-direction: column; align-items: stretch; }
+  .field input, .field select { width: 100%; }
+  .card form input, .card form select, .card form button { width: 100%; }
+  .list-card-actions { flex-direction: column; }
+  .list-card-actions button { width: 100%; }
+  .actions button { width: 100%; }
+  .open-form .actions button { width: 100%; }
+  .actions-row button { flex: 1 1 auto; }
+  .card { padding: 12px; }
+  .table-responsive { display: none; }
+  .products-cards { display: grid; grid-template-columns: 1fr; gap: 12px; }
+}
+@media (max-width: 480px) {
+  .brand-logo { height: 40px; }
+  .brand { font-size: 1.2rem; }
+  .subtitle { display: none; }
+  button { padding: 0.7em 1.1em; }
+}
+
+.grow-200 { flex: 1 1 200px; }
+.grow-160 { flex: 1 1 160px; }
 
 .card form { display: grid; gap: 12px; }
 .card label { display: grid; gap: 6px; color: var(--muted); }
