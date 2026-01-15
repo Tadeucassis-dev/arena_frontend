@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '/api' : '');
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 if (!BASE_URL) {
   throw new Error(
