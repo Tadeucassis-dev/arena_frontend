@@ -6,10 +6,12 @@ function ProductForm({ onCreate }) {
   const [estoque, setEstoque] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setMsg(''); setErr('');
+    setLoading(true);
     try {
       const payload = {
         nome: nome.trim(),
@@ -20,7 +22,9 @@ function ProductForm({ onCreate }) {
       setMsg(`Produto criado: ${created.id} - ${created.nome}`);
       setNome(''); setPreco(''); setEstoque('');
     } catch (error) {
-      setErr(error.message);
+      setErr(error.message || 'Falha ao criar produto');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -37,7 +41,7 @@ function ProductForm({ onCreate }) {
         <label>Estoque
           <input type="number" step="1" value={estoque} onChange={e => setEstoque(e.target.value)} />
         </label>
-        <button type="submit">Salvar</button>
+        <button type="submit" disabled={loading}>{loading ? 'Salvando...' : 'Salvar'}</button>
         {msg && <div className="msg">{msg}</div>}
         {err && <div className="err">{err}</div>}
       </form>

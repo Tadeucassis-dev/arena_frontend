@@ -122,7 +122,7 @@ export default function App() {
           return null;
         })()}
       </main>
-      <div className="status-bar">Backend: {import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}</div>
+      <div className="status-bar">Backend: {import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? '/api' : '(configure VITE_API_BASE_URL)')}</div>
     </div> 
   );
 }
