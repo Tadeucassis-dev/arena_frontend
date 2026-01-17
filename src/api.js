@@ -2,12 +2,13 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://arena-api-prod.on
 
 // helper padrão
 async function request(url, options = {}) {
+  const hasBody = options && options.body != null;
   const res = await fetch(`${BASE_URL}${url}`, {
+    ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       ...(options.headers || {}),
     },
-    ...options,
   });
 
   if (!res.ok) {
