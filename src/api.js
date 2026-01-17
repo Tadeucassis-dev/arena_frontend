@@ -1,10 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-
-if (!BASE_URL) {
-  throw new Error(
-    'VITE_API_BASE_URL não está definida. Verifique o arquivo .env ou as variáveis do Netlify.'
-  );
-}
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://arena-api-prod.onrender.com';
 
 // helper padrão
 async function request(url, options = {}) {

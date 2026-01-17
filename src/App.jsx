@@ -12,11 +12,14 @@ export default function App() {
   const [produtos, setProdutos] = useState([]);
   const [err, setErr] = useState('');
   const [comandaId, setComandaId] = useState(null);
-  const [hash, setHash] = useState(window.location.hash);
+  const [hash, setHash] = useState(window.location.hash || '#/comandas');
   useEffect(() => {
-    if (!window.location.hash) window.location.hash = '#/comandas';
     const f = () => setHash(window.location.hash || '#/comandas');
     window.addEventListener('hashchange', f);
+    if (!window.location.hash) {
+      window.location.hash = '#/comandas';
+    }
+    setHash(window.location.hash || '#/comandas');
     return () => window.removeEventListener('hashchange', f);
   }, []);
 
