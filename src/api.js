@@ -16,9 +16,14 @@ async function request(url, options = {}) {
     throw new Error(msg || 'Erro na requisição');
   }
 
-  // alguns endpoints podem não retornar body
   if (res.status === 204) return null;
-  return res.json();
+  const ct = res.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) return null;
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 /* ===================== PRODUTOS ===================== */
@@ -55,6 +60,20 @@ export function getComanda(id) {
 export function fecharComanda(id) {
   return request(`/comandas/${id}/fechar`, {
     method: 'POST',
+  });
+}
+
+export function atualizarComanda(id, payload) {
+  return request(`/comandas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deletarComanda(id, confirmar = true) {
+  const q = confirmar ? 'true' : 'false';
+  return request(`/comandas/${id}?confirmar=${q}`, {
+    method: 'DELETE',
   });
 }
 

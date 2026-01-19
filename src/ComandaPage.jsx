@@ -3,11 +3,14 @@ import { getComanda } from './api.js';
 import ComandaItemForm from './ComandaItemForm.jsx';
 
 
-function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onVoltar }) {
+function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtualizarComanda, onDeletarComanda, onVoltar }) {
   const [comanda, setComanda] = useState(null);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editTipo, setEditTipo] = useState('DAY_USE');
+  const [editValorDayUse, setEditValorDayUse] = useState('');
 
   function fmtMoney(v) {
     if (v == null) return 'R$ 0,00';
@@ -44,6 +47,13 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onVoltar
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [comanda, onVoltar]);
+  useEffect(() => {
+    if (comanda) {
+      setEditNome(comanda.nomeCliente || '');
+      setEditTipo(comanda.tipoCliente || 'DAY_USE');
+      setEditValorDayUse(comanda.valorDayUse == null ? '' : String(comanda.valorDayUse));
+    }
+  }, [comanda]);
 
   async function addItem(payload) {
     setErr(''); setMsg('');
@@ -66,6 +76,36 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onVoltar
       await load();
     } catch (error) {
       setErr(error.message || 'Falha ao fechar comanda');
+    }
+  }
+
+  async function salvarAlteracoes(e) {
+    e?.preventDefault();
+    setErr(''); setMsg('');
+    try {
+      const payload = {
+        nomeCliente: editNome,
+        tipoCliente: editTipo,
+        valorDayUse: editValorDayUse === '' ? null : Number(editValorDayUse),
+      };
+      const c = await onAtualizarComanda(comanda.id, payload);
+      setMsg(`Comanda atualizada: #${c.id}`);
+      await load();
+    } catch (error) {
+      setErr(error.message || 'Falha ao atualizar comanda');
+    }
+  }
+
+  async function excluir() {
+    setErr(''); setMsg('');
+    try {
+      const ok = window.confirm('Confirma excluir a comanda? Esta ação é permanente.');
+      if (!ok) return;
+      await onDeletarComanda(comanda.id);
+      setMsg('Comanda excluída');
+      onVoltar();
+    } catch (error) {
+      setErr(error.message || 'Falha ao excluir comanda');
     }
   }
 
@@ -99,9 +139,30 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onVoltar
       <div className="actions-row">
         <button type="button" onClick={onVoltar}>Voltar</button>
         {comanda.status !== 'FECHADA' && <button type="button" onClick={fechar}>Fechar Comanda</button>}
+        <button type="button" onClick={excluir}>Excluir Comanda</button>
       </div>
       {msg && <div className="msg">{msg}</div>}
       {err && <div className="err">{err}</div>}
+
+      <div className="card">
+        <h2>Editar Comanda</h2>
+        <form onSubmit={salvarAlteracoes} className="actions wrap">
+          <label className="field grow-200">Nome
+            <input value={editNome} onChange={e => setEditNome(e.target.value)} />
+          </label>
+          <label className="field grow-160">Tipo
+            <select value={editTipo} onChange={e => setEditTipo(e.target.value)}>
+              <option value="DAY_USE">DAY_USE</option>
+              <option value="ALUNO">ALUNO</option>
+            </select>
+          </label>
+          <label className="field grow-160">Day Use (R$)
+            <input type="number" step="0.01" value={editValorDayUse} onChange={e => setEditValorDayUse(e.target.value)} disabled={comanda.status !== 'ABERTA'} />
+          </label>
+          <button type="submit">Salvar</button>
+        </form>
+        {comanda.status !== 'ABERTA' && <div className="note">Valor de Day Use só pode ser alterado com a comanda ABERTA.</div>}
+      </div>
 
       <div className="card">
         <h2>Adicionar Item</h2>

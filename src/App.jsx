@@ -5,7 +5,7 @@ import ComandaItemForm from './ComandaItemForm.jsx';
 
 import ComandaList from './ComandaList.jsx';
 import ComandaPage from './ComandaPage.jsx';
-import { getProdutos, criarProduto, adicionarItemComanda, abrirComanda, fecharComanda, buscarComandaPorNome, buscarComandasPorNome, listarComandas } from './api.js';
+import { getProdutos, criarProduto, adicionarItemComanda, abrirComanda, fecharComanda, atualizarComanda, deletarComanda, buscarComandaPorNome, buscarComandasPorNome, listarComandas } from './api.js';
 import logoArena from './assets/logoArenaCesar.jpg';
 
 export default function App() {
@@ -58,6 +58,19 @@ export default function App() {
     return c;
   }
 
+  async function handleAtualizarComanda(id, payload) {
+    const c = await atualizarComanda(id, payload);
+    setComandaId(c.id);
+    return c;
+  }
+
+  async function handleDeletarComanda(id) {
+    await deletarComanda(id, true);
+    setComandaId(null);
+    window.location.hash = '#/comandas';
+    return null;
+  }
+
   async function handleBuscarPorNome(nome) {
     const c = await buscarComandaPorNome(nome);
     setComandaId(c.id);
@@ -101,6 +114,8 @@ export default function App() {
                 produtos={produtos}
                 onAddItem={handleAddItem}
                 onFecharComanda={handleFecharComanda}
+                onAtualizarComanda={handleAtualizarComanda}
+                onDeletarComanda={handleDeletarComanda}
                 onVoltar={() => { window.location.hash = '#/comandas'; }}
               />
             );

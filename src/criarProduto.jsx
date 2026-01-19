@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const BASE_URL = 'https://arena-api-prod.onrender.com';
 
 export async function getProdutos() {
   const res = await fetch(`${BASE_URL}/produtos`);
