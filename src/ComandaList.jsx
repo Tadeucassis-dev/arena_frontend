@@ -12,6 +12,8 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
   const [openTipo, setOpenTipo] = useState('DAY_USE');
   const [openValor, setOpenValor] = useState('');
   const buscaRef = useRef(null);
+  const [resumo, setResumo] = useState({ faturamento: 0, count: 0, ticketMedio: 0 });
+  const [resumoErr, setResumoErr] = useState('');
 
   function fmtMoney(v) {
     if (v == null) return 'R$ 0,00';
@@ -40,12 +42,26 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
     }
   }
 
+  async function loadResumo() {
+    setResumoErr('');
+    try {
+      const fechadas = await listarComandas('FECHADA');
+      const total = (fechadas || []).reduce((s, c) => s + Number(c.valorTotal || 0), 0);
+      const count = (fechadas || []).length;
+      const tm = count ? total / count : 0;
+      setResumo({ faturamento: total, count, ticketMedio: tm });
+    } catch (error) {
+      setResumoErr(error.message || 'Falha ao carregar resumo');
+    }
+  }
+
   useEffect(() => { load(); }, [status]);
   useEffect(() => {
     const h = (e) => { if (e.key === '/') { e.preventDefault(); buscaRef.current?.focus(); } };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, []);
+  useEffect(() => { loadResumo(); }, []);
 
   const filtradas = comandas.filter(c =>
     (c.nomeCliente || '').toLowerCase().includes(busca.toLowerCase())
@@ -98,6 +114,12 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
             <input ref={buscaRef} placeholder="Nome do cliente ou #ID" value={busca} onChange={e => setBusca(e.target.value)} />
           </label>
           <button type="button" onClick={load} disabled={loading}>{loading ? 'Carregando...' : 'Atualizar'}</button>
+        </div>
+        <div className="meta-row">
+          <span>Fechadas: {resumo.count}</span>
+          <span>Faturamento: {fmtMoney(resumo.faturamento)}</span>
+          <span>Ticket Médio: {fmtMoney(resumo.ticketMedio)}</span>
+          <button type="button" onClick={loadResumo}>Atualizar Resumo</button>
         </div>
         <div className="open-form">
           <div className="open-form-title">Abrir Comanda</div>
