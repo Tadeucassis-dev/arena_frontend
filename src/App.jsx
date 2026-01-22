@@ -5,7 +5,7 @@ import ComandaItemForm from './ComandaItemForm.jsx';
 
 import ComandaList from './ComandaList.jsx';
 import ComandaPage from './ComandaPage.jsx';
-import { getProdutos, criarProduto, adicionarItemComanda, abrirComanda, fecharComanda, atualizarComanda, deletarComanda, buscarComandaPorNome, buscarComandasPorNome, listarComandas } from './api.js';
+import { getProdutos, criarProduto, atualizarProduto, adicionarItemComanda, abrirComanda, fecharComanda, atualizarComanda, deletarComanda, buscarComandaPorNome, buscarComandasPorNome, listarComandas } from './api.js';
 import logoArena from './assets/logoArenaCesar.jpg';
 
 export default function App() {
@@ -39,6 +39,12 @@ export default function App() {
     const created = await criarProduto(payload);
     await loadProdutos();
     return created;
+  }
+
+  async function handleUpdateProduto(id, payload) {
+    const updated = await atualizarProduto(id, payload);
+    await loadProdutos();
+    return updated;
   }
 
   async function handleAddItem(payload) {
@@ -133,7 +139,7 @@ export default function App() {
             return (
               <div className="grid">
                 <ProductForm onCreate={handleCreateProduto} />
-                <ProductList produtos={produtos} />
+                <ProductList produtos={produtos} onUpdate={handleUpdateProduto} />
               </div>
             );
           }

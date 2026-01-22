@@ -156,7 +156,7 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
               <div className="meta">Tipo: {c.tipoCliente} • Abertura: {fmtDate(c.dataAbertura)}</div>
               <div className="totals">Day Use: {fmtMoney(c.valorDayUse)} • Total: {fmtMoney(c.valorTotal)}</div>
             </div>
-            <div className="list-card-actions">
+            <div className="list-card-actions wrap">
               {c.status !== 'FECHADA' && (
                 <button type="button" onClick={(e) => { e.stopPropagation(); fechar(c.id); }}>Fechar</button>
               )}

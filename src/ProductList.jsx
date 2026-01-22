@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function ProductList({ produtos }) {
+export default function ProductList({ produtos, onUpdate }) {
   return (
     <div className="card">
       <h2>Produtos</h2>
@@ -8,7 +8,7 @@ export default function ProductList({ produtos }) {
         <table>
         <thead>
           <tr>
-            <th>ID</th><th>Nome</th><th>Preço</th><th>Estoque</th>
+            <th>ID</th><th>Nome</th><th>Preço</th><th>Estoque</th><th>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -18,6 +18,12 @@ export default function ProductList({ produtos }) {
               <td>{p.nome}</td>
               <td>{String(p.preco)}</td>
               <td>{p.estoque}</td>
+              <td>
+                <div className="actions-row">
+                  <button type="button" onClick={() => onUpdate && onUpdate(p.id, { estoque: (p.estoque || 0) - 1 < 0 ? 0 : (p.estoque || 0) - 1 })}>-1</button>
+                  <button type="button" onClick={() => onUpdate && onUpdate(p.id, { estoque: (p.estoque || 0) + 1 })}>+1</button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>

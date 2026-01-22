@@ -39,6 +39,13 @@ export function criarProduto(payload) {
   });
 }
 
+export function atualizarProduto(id, payload) {
+  return request(`/produtos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
 /* ===================== COMANDAS ===================== */
 
 export function abrirComanda(payload) {
