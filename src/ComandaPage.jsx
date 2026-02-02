@@ -11,6 +11,7 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
   const [editNome, setEditNome] = useState('');
   const [editTipo, setEditTipo] = useState('ALUNO');
   const [editValorDayUse, setEditValorDayUse] = useState('');
+  const [showItens, setShowItens] = useState(false);
 
   function fmtMoney(v) {
     if (v == null) return 'R$ 0,00';
@@ -140,9 +141,33 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
         <button type="button" onClick={onVoltar}>Voltar</button>
         {comanda.status !== 'FECHADA' && <button type="button" onClick={fechar}>Fechar Comanda</button>}
         <button type="button" onClick={excluir}>Excluir Comanda</button>
+        <button type="button" onClick={() => setShowItens(v => !v)}>{showItens ? 'Ocultar Itens' : 'Itens Consumidos'}</button>
       </div>
       {msg && <div className="msg">{msg}</div>}
       {err && <div className="err">{err}</div>}
+
+      {showItens && (
+        <div className="card">
+          <h2>Itens Consumidos</h2>
+          {(() => {
+            const itens = Array.isArray(comanda?.itens) ? comanda.itens
+              : Array.isArray(comanda?.items) ? comanda.items
+              : Array.isArray(comanda?.itemComandas) ? comanda.itemComandas
+              : [];
+            if (!itens.length) return <div className="empty">Sem itens</div>;
+            return (
+              <div className="items-list">
+                {itens.map(it => (
+                  <div key={it.id} className="item-row" style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+                    <span>{(it.produto && it.produto.nome) || it.nome || `Produto #${it.produtoId ?? '-'}`}</span>
+                    <span>Qtd: {it.quantidade}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       <div className="card">
         <h2>Editar Comanda</h2>
