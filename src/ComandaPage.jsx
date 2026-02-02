@@ -9,7 +9,7 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [editNome, setEditNome] = useState('');
-  const [editTipo, setEditTipo] = useState('DAY_USE');
+  const [editTipo, setEditTipo] = useState('ALUNO');
   const [editValorDayUse, setEditValorDayUse] = useState('');
 
   function fmtMoney(v) {
@@ -50,7 +50,7 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
   useEffect(() => {
     if (comanda) {
       setEditNome(comanda.nomeCliente || '');
-      setEditTipo(comanda.tipoCliente || 'DAY_USE');
+      setEditTipo(comanda.tipoCliente || 'ALUNO');
       setEditValorDayUse(comanda.valorDayUse == null ? '' : String(comanda.valorDayUse));
     }
   }, [comanda]);

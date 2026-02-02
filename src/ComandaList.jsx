@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { listarComandas } from './api.js';
+import { listarComandas, getComanda } from './api.js';
 
 export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComanda }) {
   const [status, setStatus] = useState('ABERTA');
@@ -9,11 +9,12 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [openNome, setOpenNome] = useState('');
-  const [openTipo, setOpenTipo] = useState('DAY_USE');
+  const [openTipo, setOpenTipo] = useState('ALUNO');
   const [openValor, setOpenValor] = useState('');
   const buscaRef = useRef(null);
   const [resumo, setResumo] = useState({ faturamento: 0, count: 0, ticketMedio: 0 });
   const [resumoErr, setResumoErr] = useState('');
+  const [itensPorComanda, setItensPorComanda] = useState({});
 
   function fmtMoney(v) {
     if (v == null) return 'R$ 0,00';
@@ -35,6 +36,15 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
       const data = await listarComandas(status);
       setComandas(data || []);
       setMsg(`${(data || []).length} comandas ${status?.toLowerCase() || ''} carregadas`);
+      if ((status || '') === 'ABERTA') {
+        const arr = data || [];
+        const results = await Promise.all(arr.map(c => getComanda(c.id).catch(() => null)));
+        const map = {};
+        results.forEach(det => { if (det && det.id != null) { map[det.id] = det.itens || det.items || det.itemComandas || []; } });
+        setItensPorComanda(map);
+      } else {
+        setItensPorComanda({});
+      }
     } catch (error) {
       setErr(error.message || 'Falha ao listar comandas');
     } finally {
@@ -155,6 +165,20 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
               <div className="title">{c.nomeCliente}</div>
               <div className="meta">Tipo: {c.tipoCliente} • Abertura: {fmtDate(c.dataAbertura)}</div>
               <div className="totals">Day Use: {fmtMoney(c.valorDayUse)} • Total: {fmtMoney(c.valorTotal)}</div>
+              {c.status === 'ABERTA' && (() => {
+                const itens = itensPorComanda[c.id] || [];
+                if (!Array.isArray(itens) || itens.length === 0) return <div className="empty">Sem itens</div>;
+                return (
+                  <div className="items-list">
+                    {itens.map(it => (
+                      <div key={it.id} className="item-row">
+                        <span>{(it.produto && it.produto.nome) || `Produto #${it.produtoId ?? '-'}`}</span>
+                        <span>Qtd: {it.quantidade}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
             <div className="list-card-actions wrap">
               {c.status !== 'FECHADA' && (

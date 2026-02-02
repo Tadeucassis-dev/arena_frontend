@@ -6,7 +6,7 @@ import ComandaItemForm from './ComandaItemForm.jsx';
 import ComandaList from './ComandaList.jsx';
 import ComandaPage from './ComandaPage.jsx';
 import { getProdutos, criarProduto, atualizarProduto, adicionarItemComanda, abrirComanda, fecharComanda, atualizarComanda, deletarComanda, buscarComandaPorNome, buscarComandasPorNome, listarComandas } from './api.js';
-import logoArena from './assets/logoArenaCesar.jpg';
+import logoArena from './assets/logoPreta.png';
 
 export default function App() {
   const [produtos, setProdutos] = useState([]);
@@ -146,7 +146,6 @@ export default function App() {
           return null;
         })()}
       </main>
-      <div className="status-bar">Backend: {import.meta.env.VITE_API_BASE_URL || '/api'}</div>
     </div> 
   );
 }

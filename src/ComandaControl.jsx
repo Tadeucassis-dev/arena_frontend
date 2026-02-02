@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 export default function ComandaControl({ onAbrirComanda, onSelecionar, comandaId, onFecharComanda, onBuscarLista, onListarAbertas, onVincularMapping }) {
   const [nomeCliente, setNomeCliente] = useState('');
-  const [tipoCliente, setTipoCliente] = useState('DAY_USE');
+  const [tipoCliente, setTipoCliente] = useState('ALUNO');
   const [valorDayUse, setValorDayUse] = useState('');
   const [buscarNome, setBuscarNome] = useState('');
   const [msg, setMsg] = useState('');
@@ -92,8 +92,8 @@ export default function ComandaControl({ onAbrirComanda, onSelecionar, comandaId
           </label>
           <label>Tipo do Cliente
             <select value={tipoCliente} onChange={e => setTipoCliente(e.target.value)}>
-              <option value="DAY_USE">DAY_USE</option>
               <option value="ALUNO">ALUNO</option>
+              <option value="DAY_USE">DAY_USE</option>
             </select>
           </label>
           <label>Valor Day Use (R$)
