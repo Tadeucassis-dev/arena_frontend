@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getComanda } from './api.js';
+import { getComanda, getItensComanda } from './api.js';
 import ComandaItemForm from './ComandaItemForm.jsx';
 
 
@@ -12,6 +12,7 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
   const [editTipo, setEditTipo] = useState('ALUNO');
   const [editValorDayUse, setEditValorDayUse] = useState('');
   const [showItens, setShowItens] = useState(false);
+  const [itens, setItens] = useState([]);
 
   function fmtMoney(v) {
     if (v == null) return 'R$ 0,00';
@@ -26,6 +27,10 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
     } catch {}
     return dt ? String(dt) : '-';
   }
+  function nomeProduto(pid) {
+    const p = (produtos || []).find(x => Number(x.id) === Number(pid));
+    return p ? p.nome : `Produto #${pid ?? '-'}`;
+  }
 
   async function load() {
     setLoading(true); setErr(''); setMsg('');
@@ -38,6 +43,12 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
       setLoading(false);
     }
   }
+  async function loadItens() {
+    try {
+      const arr = await getItensComanda(comandaId);
+      setItens(Array.isArray(arr) ? arr : []);
+    } catch {}
+  }
 
   useEffect(() => { load(); }, [comandaId]);
   useEffect(() => {
@@ -48,6 +59,7 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [comanda, onVoltar]);
+  useEffect(() => { if (showItens) { loadItens(); } }, [showItens, comandaId]);
   useEffect(() => {
     if (comanda) {
       setEditNome(comanda.nomeCliente || '');
@@ -150,16 +162,14 @@ function ComandaPage({ comandaId, produtos, onAddItem, onFecharComanda, onAtuali
         <div className="card">
           <h2>Itens Consumidos</h2>
           {(() => {
-            const itens = Array.isArray(comanda?.itens) ? comanda.itens
-              : Array.isArray(comanda?.items) ? comanda.items
-              : Array.isArray(comanda?.itemComandas) ? comanda.itemComandas
-              : [];
-            if (!itens.length) return <div className="empty">Sem itens</div>;
+            const arr = Array.isArray(itens) ? itens : [];
+            if (!arr.length) return <div className="empty">Sem itens</div>;
             return (
               <div className="items-list">
-                {itens.map(it => (
-                  <div key={it.id} className="item-row" style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                    <span>{(it.produto && it.produto.nome) || it.nome || `Produto #${it.produtoId ?? '-'}`}</span>
+                {arr.map(it => (
+                  <div key={it.id ?? `${it.produtoId}-${it.quantidade}-${Math.random()}`}
+                       className="item-row" style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+                    <span>{(it.produto && it.produto.nome) || nomeProduto(it.produtoId) || it.nome}</span>
                     <span>Qtd: {it.quantidade}</span>
                   </div>
                 ))}

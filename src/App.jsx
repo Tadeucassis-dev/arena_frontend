@@ -129,6 +129,7 @@ export default function App() {
           if (hash === '#/comandas') {
             return (
               <ComandaList
+                produtos={produtos}
                 onSelecionar={(id2) => { setComandaId(id2); window.location.hash = `#/comandas/${id2}`; }}
                 onFecharComanda={handleFecharComanda}
                 onAbrirComanda={handleAbrirComanda}

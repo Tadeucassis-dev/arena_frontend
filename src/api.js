@@ -91,6 +91,10 @@ export function adicionarItemComanda({ comandaId, produtoId, quantidade }) {
   });
 }
 
+export function getItensComanda(comandaId) {
+  return request(`/comandas/${comandaId}/itens`);
+}
+
 /* ===================== BUSCAS ===================== */
 
 export async function buscarComandasPorNome(

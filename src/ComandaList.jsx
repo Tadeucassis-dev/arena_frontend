@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { listarComandas, getComanda } from './api.js';
+import { listarComandas, getItensComanda } from './api.js';
 
-export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComanda }) {
+export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComanda, produtos }) {
   const [status, setStatus] = useState('ABERTA');
   const [busca, setBusca] = useState('');
   const [comandas, setComandas] = useState([]);
@@ -38,9 +38,9 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
       setMsg(`${(data || []).length} comandas ${status?.toLowerCase() || ''} carregadas`);
       if ((status || '') === 'ABERTA') {
         const arr = data || [];
-        const results = await Promise.all(arr.map(c => getComanda(c.id).catch(() => null)));
+        const results = await Promise.all(arr.map(c => getItensComanda(c.id).catch(() => [])));
         const map = {};
-        results.forEach(det => { if (det && det.id != null) { map[det.id] = det.itens || det.items || det.itemComandas || []; } });
+        arr.forEach((c, i) => { map[c.id] = Array.isArray(results[i]) ? results[i] : []; });
         setItensPorComanda(map);
       } else {
         setItensPorComanda({});
@@ -172,7 +172,7 @@ export default function ComandaList({ onSelecionar, onFecharComanda, onAbrirComa
                   <div className="items-list">
                     {itens.map(it => (
                       <div key={it.id} className="item-row">
-                        <span>{(it.produto && it.produto.nome) || `Produto #${it.produtoId ?? '-'}`}</span>
+                        <span>{(it.produto && it.produto.nome) || (() => { const p = (produtos || []).find(x => Number(x.id) === Number(it.produtoId)); return p ? p.nome : `Produto #${it.produtoId ?? '-'}`; })()}</span>
                         <span>Qtd: {it.quantidade}</span>
                       </div>
                     ))}
