@@ -39,7 +39,7 @@ async function request<T = any>(
 
 /* ===================== MOCK IMPLEMENTATION ===================== */
 // Mude para false para usar a API real
-const USE_MOCK = true 
+const USE_MOCK = false 
 
 const STORAGE_KEY = 'arena_mock_db_v2'
 
