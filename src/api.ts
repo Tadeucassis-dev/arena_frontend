@@ -53,7 +53,7 @@ async function request<T = any>(
 
 /* ===================== MOCK ===================== */
 
-const USE_MOCK = true
+const USE_MOCK = false
 const STORAGE_KEY = 'arena_mock_db_v2'
 
 const loadDb = () => {
