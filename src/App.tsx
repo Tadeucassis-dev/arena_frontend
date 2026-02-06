@@ -19,6 +19,7 @@ import {
   atualizarComanda,
   deletarComanda,
   adicionarItemComanda,
+  getComanda
 } from './api'
 
 export default function App() {
@@ -51,7 +52,7 @@ export default function App() {
               produtos={produtos}
               onAddItem={adicionarItemComanda}
               onFecharComanda={fecharComanda}
-              onAtualizarComanda={atualizarComanda}
+              onGetComanda={getComanda}
               onDeletarComanda={deletarComanda}
               onVoltar={() => (window.location.hash = '#/comandas')}
             />

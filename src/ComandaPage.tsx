@@ -33,7 +33,7 @@ type Comanda = {
   id: number
   nomeCliente: string
   status: 'ABERTA' | 'FECHADA'
-  total: number
+  valorTotal?: number
   itens: ItemComanda[]
 }
 
@@ -46,7 +46,7 @@ type Props = {
     quantidade: number
   }) => Promise<any>
   onFecharComanda: (id: number) => Promise<any>
-  onAtualizarComanda: (id: number, payload: any) => Promise<any>
+  onGetComanda: (id: number) => Promise<any>
   onDeletarComanda: (id: number) => Promise<void>
   onVoltar: () => void
 }
@@ -56,7 +56,7 @@ export default function ComandaPage({
   produtos,
   onAddItem,
   onFecharComanda,
-  onAtualizarComanda,
+  onGetComanda,
   onDeletarComanda,
   onVoltar,
 }: Props) {
@@ -69,7 +69,7 @@ export default function ComandaPage({
     async function load() {
       try {
         setErr('')
-        const data = await onAtualizarComanda(comandaId, {})
+        const data = await onGetComanda(comandaId)
         setComanda(data)
       } catch (e: unknown) {
         setErr(e instanceof Error ? e.message : 'Erro ao carregar comanda')
@@ -79,7 +79,7 @@ export default function ComandaPage({
   }, [comandaId])
 
   async function refresh() {
-    const data = await onAtualizarComanda(comandaId, {})
+    const data = await onGetComanda(comandaId)
     setComanda(data)
   }
 
@@ -228,18 +228,18 @@ export default function ComandaPage({
                   <Icon as={FiShoppingCart} color={brandColor} />
                   <Heading size="md" color="white">Consumo</Heading>
                   <Spacer />
-                  <Badge colorScheme="blue">{comanda.itens.length}</Badge>
+                  <Badge colorScheme="blue">{(comanda.itens || []).length}</Badge>
                </Flex>
             </Box>
 
             <Stack spacing={0} divider={<Divider borderColor="dark.700" />} overflowY="auto">
-              {comanda.itens.length === 0 && (
+              {(comanda.itens || []).length === 0 && (
                 <Box p={8} textAlign="center">
                    <Text color="gray.500">Nenhum item</Text>
                 </Box>
               )}
 
-              {comanda.itens.map(item => (
+              {(comanda.itens || []).map(item => (
                 <Flex
                   key={item.id}
                   justify="space-between"
@@ -265,7 +265,7 @@ export default function ComandaPage({
              <Flex justify="space-between" align="center">
                 <Text fontSize="lg" color="gray.300">Total</Text>
                 <Heading size="lg" color={brandColor}>
-                  R$ {comanda.total.toFixed(2)}
+                  R$ {(comanda.valorTotal || 0).toFixed(2)}
                 </Heading>
              </Flex>
           </Box>

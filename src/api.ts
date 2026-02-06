@@ -29,18 +29,31 @@ async function request<T = any>(
     throw new Error(msg || 'Erro na requisição')
   }
 
-  if (res.status === 204) return null as T
+  // No Content
+  if (res.status === 204) {
+    return ([] as unknown) as T
+  }
 
   const ct = res.headers.get('content-type') || ''
-  if (!ct.includes('application/json')) return null as T
 
-  return (await res.json()) as T
+  // Se não vier JSON, nunca retornar null para listas
+  if (!ct.includes('application/json')) {
+    return ([] as unknown) as T
+  }
+
+  const data = await res.json()
+
+  // Garantia extra
+  if (data === null || data === undefined) {
+    return ([] as unknown) as T
+  }
+
+  return data as T
 }
 
-/* ===================== MOCK IMPLEMENTATION ===================== */
-// Mude para false para usar a API real
-const USE_MOCK = false 
+/* ===================== MOCK ===================== */
 
+const USE_MOCK = true
 const STORAGE_KEY = 'arena_mock_db_v2'
 
 const loadDb = () => {
@@ -50,35 +63,10 @@ const loadDb = () => {
   } catch (e) {
     console.error('Erro ao carregar mock db', e)
   }
-  
+
   return {
-    produtos: [
-      { id: 1, nome: 'Água 500ml', preco: 4.0, estoque: 48 },
-      { id: 2, nome: 'Cerveja Heineken', preco: 12.0, estoque: 24 },
-      { id: 3, nome: 'Refrigerante Lata', preco: 6.0, estoque: 30 },
-      { id: 4, nome: 'Energético Monster', preco: 15.0, estoque: 10 },
-      { id: 5, nome: 'Barra de Proteína', preco: 10.0, estoque: 15 },
-    ],
-    comandas: [
-      { 
-        id: 1, 
-        nomeCliente: 'João da Silva', 
-        tipoCliente: 'ALUNO', 
-        status: 'ABERTA', 
-        total: 0, 
-        valorDayUse: null,
-        itens: [] 
-      },
-      { 
-        id: 2, 
-        nomeCliente: 'Maria Oliveira', 
-        tipoCliente: 'DAY_USE', 
-        valorDayUse: 30, 
-        status: 'ABERTA', 
-        total: 30, 
-        itens: [] 
-      }
-    ]
+    produtos: [],
+    comandas: [],
   }
 }
 
@@ -91,134 +79,130 @@ const saveDb = () => {
 const delay = (ms = 400) => new Promise(resolve => setTimeout(resolve, ms))
 
 const MockAPI = {
-  getProdutos: async () => { await delay(); return db.produtos },
-  
-  criarProduto: async (payload: any) => {
+  getProdutos: async () => {
     await delay()
-    const novo = { id: Date.now(), ...payload, estoque: Number(payload.estoque) || 0, preco: Number(payload.preco) || 0 }
-    db.produtos.push(novo)
-    saveDb()
-    return novo
-  },
-
-  atualizarProduto: async (id: number, payload: any) => {
-    await delay()
-    const idx = db.produtos.findIndex((p: any) => p.id === Number(id))
-    if (idx >= 0) {
-       db.produtos[idx] = { ...db.produtos[idx], ...payload }
-       saveDb()
-       return db.produtos[idx]
-    }
-    throw new Error('Produto não encontrado')
-  },
-
-  abrirComanda: async (payload: any) => {
-    await delay()
-    const valorDayUse = payload.valorDayUse ? Number(payload.valorDayUse) : null
-    const nova = {
-       id: Date.now(),
-       nomeCliente: payload.nomeCliente,
-       tipoCliente: payload.tipoCliente,
-       valorDayUse,
-       status: 'ABERTA',
-       total: valorDayUse || 0,
-       itens: []
-    }
-    db.comandas.push(nova)
-    saveDb()
-    return nova
+    return db.produtos || []
   },
 
   listarComandas: async (status?: string) => {
     await delay()
-    if (status) return db.comandas.filter((c: any) => c.status === status)
-    return db.comandas
+    let list = db.comandas || []
+    if (status) list = list.filter((c: any) => c.status === status)
+    return JSON.parse(JSON.stringify(list))
   },
 
   getComanda: async (id: number) => {
     await delay()
-    const c = db.comandas.find((x: any) => x.id === Number(id))
+    const c = (db.comandas || []).find((x: any) => x.id === Number(id))
     if (!c) throw new Error('Comanda não encontrada')
+    return JSON.parse(JSON.stringify(c))
+  },
+
+  getItensComanda: async (comandaId: number) => {
+    await delay()
+    const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
+    return JSON.parse(JSON.stringify(c?.itens || []))
+  },
+
+  criarProduto: async (payload: any) => {
+    await delay()
+    const newId = Date.now()
+    const p = { id: newId, ...payload }
+    if (!db.produtos) db.produtos = []
+    db.produtos.push(p)
+    saveDb()
+    return p
+  },
+
+  atualizarProduto: async (id: number, payload: any) => {
+    await delay()
+    if (!db.produtos) return null
+    const idx = db.produtos.findIndex((p: any) => p.id === Number(id))
+    if (idx === -1) throw new Error('Produto não encontrado')
+    db.produtos[idx] = { ...db.produtos[idx], ...payload }
+    saveDb()
+    return db.produtos[idx]
+  },
+
+  abrirComanda: async (payload: any) => {
+    await delay()
+    const newId = Date.now()
+    const c = {
+      id: newId,
+      ...payload,
+      status: 'ABERTA',
+      itens: [],
+      valorTotal: payload.valorDayUse || 0,
+      dataAbertura: new Date().toISOString()
+    }
+    if (!db.comandas) db.comandas = []
+    db.comandas.push(c)
+    saveDb()
     return c
   },
 
   fecharComanda: async (id: number) => {
     await delay()
-    const c = db.comandas.find((x: any) => x.id === Number(id))
-    if (c) {
-      c.status = 'FECHADA'
-      saveDb()
-      return c
-    }
-    throw new Error('Erro ao fechar')
+    const c = (db.comandas || []).find((x: any) => x.id === Number(id))
+    if (!c) throw new Error('Comanda não encontrada')
+    c.status = 'FECHADA'
+    saveDb()
+    return c
   },
 
   atualizarComanda: async (id: number, payload: any) => {
-     await delay()
-     const c = db.comandas.find((x: any) => x.id === Number(id))
-     if(c) {
-        // Se estiver atualizando day use, recalcula total
-        if (payload.valorDayUse !== undefined && c.tipoCliente === 'DAY_USE') {
-           const oldDayUse = c.valorDayUse || 0
-           const newDayUse = Number(payload.valorDayUse)
-           c.total = (c.total - oldDayUse) + newDayUse
-        }
-        Object.assign(c, payload)
-        saveDb()
-        return c
-     }
-     throw new Error('Erro ao atualizar')
+    await delay()
+    const c = (db.comandas || []).find((x: any) => x.id === Number(id))
+    if (!c) throw new Error('Comanda não encontrada')
+    Object.assign(c, payload)
+    saveDb()
+    return c
   },
 
   deletarComanda: async (id: number) => {
     await delay()
-    db.comandas = db.comandas.filter((c: any) => c.id !== Number(id))
+    if (!db.comandas) return
+    db.comandas = db.comandas.filter((x: any) => x.id !== Number(id))
     saveDb()
-    return true
   },
 
   adicionarItemComanda: async (payload: any) => {
     await delay()
     const { comandaId, produtoId, quantidade } = payload
-    const comanda = db.comandas.find((c: any) => c.id === Number(comandaId))
-    const produto = db.produtos.find((p: any) => p.id === Number(produtoId))
+    const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
+    if (!c) throw new Error('Comanda não encontrada')
+
+    const produto = (db.produtos || []).find((p: any) => p.id === Number(produtoId))
+    const prodData = produto || { id: produtoId, nome: 'Produto Mock', preco: 10 }
+
+    if (!c.itens) c.itens = []
     
-    if (comanda && produto) {
-       const item = {
-         id: Date.now() + Math.random(),
-         produtoId,
-         quantidade,
-         nomeProduto: produto.nome,
-         precoUnitario: produto.preco
-       }
-       comanda.itens = comanda.itens || []
-       comanda.itens.push(item)
-       
-       // Atualizar total
-       comanda.total = (comanda.total || 0) + (produto.preco * quantidade)
-       
-       // Baixar estoque
-       produto.estoque -= quantidade
-       
-       saveDb()
-       return item
+    const existingItem = c.itens.find((it: any) => it.produto.id === Number(produtoId))
+    if (existingItem) {
+        existingItem.quantidade += quantidade
+        existingItem.subtotal = existingItem.quantidade * (prodData.preco || 0)
+    } else {
+        c.itens.push({
+            id: Date.now(),
+            produto: prodData,
+            quantidade,
+            subtotal: quantidade * (prodData.preco || 0)
+        })
     }
-    throw new Error('Erro ao adicionar item')
-  },
-  
-  getItensComanda: async (comandaId: number) => {
-      await delay()
-      const c = db.comandas.find((x: any) => x.id === Number(comandaId))
-      return c ? (c.itens || []) : []
+
+    c.valorTotal = (c.valorDayUse || 0) + c.itens.reduce((acc: number, it: any) => acc + it.subtotal, 0)
+    
+    saveDb()
+    return c
   }
 }
-/* ===================== END MOCK ===================== */
 
 /* ===================== PRODUTOS ===================== */
 
-export function getProdutos() {
+export async function getProdutos() {
   if (USE_MOCK) return MockAPI.getProdutos()
-  return request('/produtos')
+  const res = await request('/produtos')
+  return Array.isArray(res) ? res : []
 }
 
 export function criarProduto(payload: {
@@ -262,15 +246,16 @@ export function abrirComanda(payload: {
   })
 }
 
-export function listarComandas(
+export async function listarComandas(
   status?: 'ABERTA' | 'FECHADA'
 ) {
   if (USE_MOCK) return MockAPI.listarComandas(status)
   const query = status ? `?status=${status}` : ''
-  return request(`/comandas${query}`)
+  const res = await request(`/comandas${query}`)
+  return Array.isArray(res) ? res : []
 }
 
-export function getComanda(id: number) {
+export async function getComanda(id: number) {
   if (USE_MOCK) return MockAPI.getComanda(id)
   return request(`/comandas/${id}`)
 }
@@ -321,9 +306,10 @@ export function adicionarItemComanda(payload: {
   })
 }
 
-export function getItensComanda(comandaId: number) {
+export async function getItensComanda(comandaId: number) {
   if (USE_MOCK) return MockAPI.getItensComanda(comandaId)
-  return request(`/comandas/${comandaId}/itens`)
+  const res = await request(`/comandas/${comandaId}/itens`)
+  return Array.isArray(res) ? res : []
 }
 
 /* ===================== BUSCAS ===================== */
@@ -332,7 +318,7 @@ export async function buscarComandasPorNome(
   nomeCliente: string,
   status: 'ABERTA' | 'FECHADA' = 'ABERTA'
 ) {
-  const lista = await listarComandas(status)
+  const lista = (await listarComandas(status)) || []
   const termo = nomeCliente.toLowerCase()
 
   return lista.filter((c: any) =>
@@ -341,7 +327,7 @@ export async function buscarComandasPorNome(
 }
 
 export async function buscarComandaPorNome(nomeCliente: string) {
-  const lista = await listarComandas()
+  const lista = (await listarComandas()) || []
   const termo = nomeCliente.toLowerCase()
 
   const match = lista.find((c: any) =>
