@@ -7,13 +7,16 @@ import {
   SimpleGrid,
   Text,
   useToast,
+  Input,
+  InputGroup,
+  InputLeftElement,
   Card,
   CardBody,
   Badge,
   IconButton,
   HStack
 } from '@chakra-ui/react'
-import { FiPlus, FiMinus, FiShoppingCart } from 'react-icons/fi'
+import { FiPlus, FiMinus, FiShoppingCart, FiSearch } from 'react-icons/fi'
 import { Produto } from './types/produtos'
 
 interface Props {
@@ -25,7 +28,12 @@ interface Props {
 export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Props) {
   const [loading, setLoading] = useState(false)
   const [quantidades, setQuantidades] = useState<Record<number, number>>({})
+  const [busca, setBusca] = useState('')
   const toast = useToast()
+
+  const produtosFiltrados = produtos
+    .filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()))
+    .sort((a, b) => a.nome.localeCompare(b.nome))
 
   const handleQuantityChange = (id: number, delta: number) => {
     setQuantidades(prev => {
@@ -73,10 +81,24 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
 
   return (
     <Box>
-      <Heading size="md" mb={4}>Adicionar Produtos</Heading>
+      <Flex justify="space-between" align="center" mb={4}>
+        <Heading size="md">Adicionar Produtos</Heading>
+        <InputGroup maxW="300px">
+          <InputLeftElement pointerEvents="none">
+            <FiSearch color="gray" />
+          </InputLeftElement>
+          <Input
+            placeholder="Buscar produto..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            bg="dark.800"
+            borderColor="dark.700"
+          />
+        </InputGroup>
+      </Flex>
       
       <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={4}>
-        {produtos.map(produto => {
+        {produtosFiltrados.map(produto => {
           const qtd = quantidades[produto.id] || 0
           
           return (
@@ -119,7 +141,9 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
                     />
                     <Button 
                       size="sm" 
-                      colorScheme="brand" 
+                      bg="brand.500"
+                      color="black"
+                      _hover={{ bg: 'brand.400' }}
                       ml={2}
                       isLoading={loading}
                       onClick={(e) => { e.stopPropagation(); handleAdd(produto) }}
