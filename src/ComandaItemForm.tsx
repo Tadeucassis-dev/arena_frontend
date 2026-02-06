@@ -31,8 +31,15 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
   const [busca, setBusca] = useState('')
   const toast = useToast()
 
+  const normalizeText = (text: string) => {
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+  }
+
   const produtosFiltrados = produtos
-    .filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()))
+    .filter(p => normalizeText(p.nome).includes(normalizeText(busca)))
     .sort((a, b) => a.nome.localeCompare(b.nome))
 
   const handleQuantityChange = (id: number, delta: number) => {
