@@ -3,21 +3,20 @@ import {
   Box, 
   Button, 
   Input, 
-  Stack, 
   Heading, 
   FormControl, 
   FormLabel, 
   InputGroup, 
   InputLeftElement,
   Flex,
-  Icon,
-  useColorModeValue 
+  Icon
 } from '@chakra-ui/react'
-import { FiPlus, FiTag, FiDollarSign } from 'react-icons/fi'
+import { FiPlus, FiTag, FiDollarSign, FiPackage } from 'react-icons/fi'
 
 export default function ProductForm({ onCreate }: any) {
   const [nome, setNome] = useState('')
   const [preco, setPreco] = useState('')
+  const [estoque, setEstoque] = useState('0')
   const [loading, setLoading] = useState(false)
 
   const cardBg = 'dark.800'
@@ -27,9 +26,14 @@ export default function ProductForm({ onCreate }: any) {
     if (!nome || !preco) return
     setLoading(true)
     try {
-      await onCreate({ nome, preco: Number(preco), estoque: 0 })
+      await onCreate({
+        nome,
+        preco: Number(preco),
+        estoque: Math.max(0, Number(estoque) || 0),
+      })
       setNome('')
       setPreco('')
+      setEstoque('0')
     } finally {
       setLoading(false)
     }
@@ -74,6 +78,22 @@ export default function ProductForm({ onCreate }: any) {
               type="number"
               value={preco}
               onChange={e => setPreco(e.target.value)}
+              bg="dark.900"
+              borderColor="dark.700"
+            />
+          </InputGroup>
+        </FormControl>
+
+        <FormControl width={{ base: '100%', md: '180px' }}>
+          <FormLabel>Estoque Inicial</FormLabel>
+          <InputGroup>
+            <InputLeftElement pointerEvents="none"><FiPackage color="gray.500" /></InputLeftElement>
+            <Input
+              placeholder="0"
+              type="number"
+              min={0}
+              value={estoque}
+              onChange={e => setEstoque(e.target.value)}
               bg="dark.900"
               borderColor="dark.700"
             />

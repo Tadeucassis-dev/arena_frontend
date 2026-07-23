@@ -1,6 +1,6 @@
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://arena-api-prod.onrender.com'
+  'http://localhost:8080'
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const hasBody = options.body != null

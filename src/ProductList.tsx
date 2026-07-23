@@ -8,15 +8,12 @@ import {
   Td,
   Tbody,
   Button,
-  IconButton,
   Text,
-  useColorModeValue,
-  Flex,
   Badge
 } from '@chakra-ui/react'
-import { FiPlus } from 'react-icons/fi'
+import { FiMinus, FiPlus, FiTrash2 } from 'react-icons/fi'
 
-export default function ProductList({ produtos, onUpdate }: any) {
+export default function ProductList({ produtos, onAdjustStock, onDelete }: any) {
   const cardBg = 'dark.800'
   const cardBorder = 'dark.700'
   const hoverBg = 'dark.700'
@@ -65,18 +62,37 @@ export default function ProductList({ produtos, onUpdate }: any) {
                   </Badge>
                 </Td>
                 <Td textAlign="right">
-                  <Button
-                    size="sm"
-                    leftIcon={<FiPlus />}
-                    variant="outline"
-                    colorScheme="brand"
-                    onClick={() =>
-                      onUpdate(p.id, { estoque: (p.estoque || 0) + 1 })
-                    }
-                    _hover={{ bg: 'brand.500', color: 'black' }}
-                  >
-                    Estoque
-                  </Button>
+                  <Box display="inline-flex" gap={2}>
+                    <Button
+                      size="sm"
+                      leftIcon={<FiMinus />}
+                      variant="outline"
+                      colorScheme="brand"
+                      onClick={() => onAdjustStock(p.id, -1)}
+                      isDisabled={(p.estoque || 0) <= 0}
+                    >
+                      
+                    </Button>
+                    <Button
+                      size="sm"
+                      leftIcon={<FiPlus />}
+                      variant="outline"
+                      colorScheme="green"
+                      onClick={() => onAdjustStock(p.id, 1)}
+                      _hover={{ bg: 'brand.500', color: 'black' }}
+                    >
+                      
+                    </Button>
+                    <Button
+                      size="sm"
+                      leftIcon={<FiTrash2 />}
+                      variant="outline"
+                      colorScheme="red"
+                      onClick={() => onDelete(p.id)}
+                    >
+                      Excluir
+                    </Button>
+                  </Box>
                 </Td>
               </Tr>
             ))}

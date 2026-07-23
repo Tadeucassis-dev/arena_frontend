@@ -401,9 +401,6 @@ export default function ComandaList({
                 >
                   {c.status}
                 </Badge>
-                <Text fontWeight="bold" fontSize="2xl" color="gray.500" opacity={0.3}>
-                  #{c.id}
-                </Text>
               </Flex>
 
               <Text fontWeight="bold" fontSize="lg" noOfLines={1} mb={1}>

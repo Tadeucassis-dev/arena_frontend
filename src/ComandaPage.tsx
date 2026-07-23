@@ -16,11 +16,12 @@ import {
   Icon,
   Spacer
 } from '@chakra-ui/react'
-import { FiArrowLeft, FiTrash2, FiCheckCircle, FiShoppingCart } from 'react-icons/fi'
+import { FiArrowLeft, FiTrash2, FiCheckCircle, FiShoppingCart, FiMinus, FiPlus } from 'react-icons/fi'
 
 import { ComandaItemForm } from './ComandaItemForm'
 import Logo from './assets/logoPreta.png'
 import { Produto } from './types/produtos'
+import { atualizarQuantidadeItem } from './api'
 
 type ItemComanda = {
   id: number
@@ -48,6 +49,7 @@ type Props = {
   onFecharComanda: (id: number) => Promise<any>
   onGetComanda: (id: number) => Promise<any>
   onDeletarComanda: (id: number) => Promise<void>
+  onProdutosAtualizados?: () => Promise<void> | void
   onVoltar: () => void
 }
 
@@ -58,12 +60,14 @@ export default function ComandaPage({
   onFecharComanda,
   onGetComanda,
   onDeletarComanda,
+  onProdutosAtualizados,
   onVoltar,
 }: Props) {
   const [comanda, setComanda] = useState<Comanda | null>(null)
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
+  const [atualizandoItem, setAtualizandoItem] = useState<number | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -81,6 +85,7 @@ export default function ComandaPage({
   async function refresh() {
     const data = await onGetComanda(comandaId)
     setComanda(data)
+    await onProdutosAtualizados?.()
   }
 
   async function handleFechar() {
@@ -99,6 +104,23 @@ export default function ComandaPage({
   async function handleDelete() {
     if (!confirm('Deseja realmente excluir esta comanda?')) return
     await onDeletarComanda(comandaId)
+  }
+
+  async function handleAtualizarQuantidade(produtoId: number, novaQuantidade: number) {
+    if (atualizandoItem === produtoId) return
+    setAtualizandoItem(produtoId)
+    try {
+      await atualizarQuantidadeItem({
+        comandaId,
+        produtoId,
+        quantidade: novaQuantidade
+      })
+      await refresh()
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Erro ao atualizar quantidade')
+    } finally {
+      setAtualizandoItem(null)
+    }
   }
 
   if (!comanda) {
@@ -248,15 +270,53 @@ export default function ComandaPage({
                   _hover={{ bg: 'dark.700' }}
                   transition="background 0.2s"
                 >
-                  <Box>
-                  <Text fontWeight="bold" fontSize="md">{item.produto.nome}</Text>
-                  <Text fontSize="sm" color="gray.300">
-                    {item.quantidade} × R$ {(item.produto.preco || 0).toFixed(2)}
-                  </Text>
-                </Box>
-                  <Text fontWeight="bold" fontSize="lg" color="white">
-                    R$ {item.subtotal.toFixed(2)}
-                  </Text>
+                  <Box flex="1">
+                    <Text fontWeight="bold" fontSize="md">{item.produto.nome}</Text>
+                    <Text fontSize="sm" color="gray.300">
+                      R$ {(item.produto.preco || 0).toFixed(2)} cada
+                    </Text>
+                  </Box>
+
+                  {/* Controles de quantidade */}
+                  {comanda.status === 'ABERTA' && (
+                    <Flex align="center" gap={2} mr={4}>
+                      <Button
+                        size="xs"
+                        colorScheme="red"
+                        variant="outline"
+                        onClick={() => handleAtualizarQuantidade(item.produto.id, item.quantidade - 1)}
+                        isLoading={atualizandoItem === item.produto.id}
+                        disabled={atualizandoItem === item.produto.id}
+                      >
+                        <Icon as={FiMinus} />
+                      </Button>
+                      <Badge minW="40px" textAlign="center" fontSize="md" colorScheme="brand">
+                        {item.quantidade}
+                      </Badge>
+                      <Button
+                        size="xs"
+                        colorScheme="green"
+                        variant="outline"
+                        onClick={() => handleAtualizarQuantidade(item.produto.id, item.quantidade + 1)}
+                        isLoading={atualizandoItem === item.produto.id}
+                        disabled={atualizandoItem === item.produto.id}
+                      >
+                        <Icon as={FiPlus} />
+                      </Button>
+                    </Flex>
+                  )}
+
+                  {/* Subtotal */}
+                  <Box minW="100px" textAlign="right">
+                    {comanda.status === 'ABERTA' && (
+                      <Text fontSize="sm" color="gray.400">
+                        {item.quantidade} × R$ {(item.produto.preco || 0).toFixed(2)}
+                      </Text>
+                    )}
+                    <Text fontWeight="bold" fontSize="lg" color="white">
+                      R$ {item.subtotal.toFixed(2)}
+                    </Text>
+                  </Box>
                 </Flex>
               ))}
             </Stack>

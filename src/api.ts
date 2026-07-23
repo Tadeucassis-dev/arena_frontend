@@ -1,6 +1,6 @@
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  'https://arena-api-prod.onrender.com'
+  'http://localhost:8080'
 
 /* ===================== TYPES ===================== */
 
@@ -53,7 +53,8 @@ async function request<T = any>(
 
 /* ===================== MOCK ===================== */
 
-const USE_MOCK = false
+// Usa MOCK em desenvolvimento, API real em produção automaticamente
+const USE_MOCK = import.meta.env.DEV
 const STORAGE_KEY = 'arena_mock_db_v2'
 
 const loadDb = () => {
@@ -77,6 +78,12 @@ const saveDb = () => {
 }
 
 const delay = (ms = 400) => new Promise(resolve => setTimeout(resolve, ms))
+
+const recalcComandaTotal = (comanda: any) => {
+  comanda.valorTotal =
+    (comanda.valorDayUse || 0) +
+    (comanda.itens || []).reduce((acc: number, it: any) => acc + it.subtotal, 0)
+}
 
 const MockAPI = {
   getProdutos: async () => {
@@ -124,6 +131,13 @@ const MockAPI = {
     return db.produtos[idx]
   },
 
+  deletarProduto: async (id: number) => {
+    await delay()
+    if (!db.produtos) return
+    db.produtos = db.produtos.filter((p: any) => p.id !== Number(id))
+    saveDb()
+  },
+
   abrirComanda: async (payload: any) => {
     await delay()
     const newId = Date.now()
@@ -162,6 +176,15 @@ const MockAPI = {
   deletarComanda: async (id: number) => {
     await delay()
     if (!db.comandas) return
+    const comanda = db.comandas.find((x: any) => x.id === Number(id))
+    if (comanda?.itens?.length) {
+      comanda.itens.forEach((item: any) => {
+        const produto = (db.produtos || []).find((p: any) => p.id === Number(item.produto?.id))
+        if (produto) {
+          produto.estoque = (produto.estoque || 0) + (item.quantidade || 0)
+        }
+      })
+    }
     db.comandas = db.comandas.filter((x: any) => x.id !== Number(id))
     saveDb()
   },
@@ -174,6 +197,14 @@ const MockAPI = {
 
     const produto = (db.produtos || []).find((p: any) => p.id === Number(produtoId))
     const prodData = produto || { id: produtoId, nome: 'Produto Mock', preco: 10 }
+
+    if (produto) {
+      const estoqueAtual = produto.estoque || 0
+      if (estoqueAtual < quantidade) {
+        throw new Error('Estoque insuficiente')
+      }
+      produto.estoque = estoqueAtual - quantidade
+    }
 
     if (!c.itens) c.itens = []
     
@@ -190,7 +221,76 @@ const MockAPI = {
         })
     }
 
-    c.valorTotal = (c.valorDayUse || 0) + c.itens.reduce((acc: number, it: any) => acc + it.subtotal, 0)
+    recalcComandaTotal(c)
+    
+    saveDb()
+    return c
+  },
+
+  atualizarQuantidadeItem: async (payload: { comandaId: number, produtoId: number, quantidade: number }) => {
+    await delay()
+    const { comandaId, produtoId, quantidade } = payload
+    const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
+    if (!c) throw new Error('Comanda não encontrada')
+    if (!c.itens) c.itens = []
+
+    const itemIndex = c.itens.findIndex((it: any) => it.produto.id === Number(produtoId))
+    
+    if (itemIndex === -1) {
+      throw new Error('Item não encontrado')
+    }
+
+    const item = c.itens[itemIndex]
+    const produto = (db.produtos || []).find((p: any) => p.id === Number(produtoId))
+    const quantidadeAnterior = item.quantidade || 0
+    const diferenca = quantidade - quantidadeAnterior
+
+    if (quantidade <= 0) {
+      // Remove o item
+      if (produto) {
+        produto.estoque = (produto.estoque || 0) + quantidadeAnterior
+      }
+      c.itens.splice(itemIndex, 1)
+    } else {
+      if (produto) {
+        if (diferenca > 0) {
+          const estoqueAtual = produto.estoque || 0
+          if (estoqueAtual < diferenca) {
+            throw new Error('Estoque insuficiente')
+          }
+          produto.estoque = estoqueAtual - diferenca
+        } else if (diferenca < 0) {
+          produto.estoque = (produto.estoque || 0) + Math.abs(diferenca)
+        }
+      }
+
+      // Atualiza a quantidade
+      item.quantidade = quantidade
+      item.subtotal = quantidade * (item.produto.preco || 0)
+    }
+
+    recalcComandaTotal(c)
+    
+    saveDb()
+    return c
+  },
+
+  removerItemComanda: async (payload: { comandaId: number, itemId: number }) => {
+    await delay()
+    const { comandaId, itemId } = payload
+    const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
+    if (!c) throw new Error('Comanda não encontrada')
+    if (!c.itens) c.itens = []
+    const item = c.itens.find((it: any) => it.id === Number(itemId))
+    if (item) {
+      const produto = (db.produtos || []).find((p: any) => p.id === Number(item.produto?.id))
+      if (produto) {
+        produto.estoque = (produto.estoque || 0) + (item.quantidade || 0)
+      }
+    }
+
+    c.itens = c.itens.filter((it: any) => it.id !== Number(itemId))
+    recalcComandaTotal(c)
     
     saveDb()
     return c
@@ -229,6 +329,13 @@ export function atualizarProduto(
   return request(`/produtos/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
+  })
+}
+
+export function deletarProduto(id: number) {
+  if (USE_MOCK) return MockAPI.deletarProduto(id)
+  return request(`/produtos/${id}`, {
+    method: 'DELETE',
   })
 }
 
@@ -310,6 +417,31 @@ export async function getItensComanda(comandaId: number) {
   if (USE_MOCK) return MockAPI.getItensComanda(comandaId)
   const res = await request(`/comandas/${comandaId}/itens`)
   return Array.isArray(res) ? res : []
+}
+
+export function atualizarQuantidadeItem(payload: {
+  comandaId: number
+  produtoId: number
+  quantidade: number
+}) {
+  if (USE_MOCK) return MockAPI.atualizarQuantidadeItem(payload)
+  return request(`/comandas/${payload.comandaId}/itens`, {
+    method: 'PUT',
+    body: JSON.stringify({ 
+      produtoId: payload.produtoId,
+      quantidade: payload.quantidade
+    }),
+  })
+}
+
+export function removerItemComanda(payload: {
+  comandaId: number
+  itemId: number
+}) {
+  if (USE_MOCK) return MockAPI.removerItemComanda(payload)
+  return request(`/comandas/${payload.comandaId}/itens/${payload.itemId}`, {
+    method: 'DELETE',
+  })
 }
 
 /* ===================== BUSCAS ===================== */
