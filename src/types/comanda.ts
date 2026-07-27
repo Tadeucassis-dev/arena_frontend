@@ -15,4 +15,5 @@ export type Comanda = {
   valorDayUse?: number | null
   valorTotal?: number
   dataAbertura?: string
+  dataFechamento?: string | null
 }

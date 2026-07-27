@@ -58,13 +58,15 @@ export default function ProductForm({ onCreate }: any) {
         <FormControl flex={1} minW="200px">
           <FormLabel>Nome do Produto</FormLabel>
           <InputGroup>
-            <InputLeftElement pointerEvents="none"><FiTag color="gray.500" /></InputLeftElement>
+            <InputLeftElement pointerEvents="none"><FiTag color="rgb(209, 213, 219)" /></InputLeftElement>
             <Input
               placeholder="Ex: Água Mineral"
               value={nome}
               onChange={e => setNome(e.target.value)}
               bg="dark.900"
               borderColor="dark.700"
+              color="white"
+              _placeholder={{ color: 'gray.300' }}
             />
           </InputGroup>
         </FormControl>
@@ -72,7 +74,7 @@ export default function ProductForm({ onCreate }: any) {
         <FormControl width={{ base: '100%', md: '200px' }}>
           <FormLabel>Preço (R$)</FormLabel>
           <InputGroup>
-            <InputLeftElement pointerEvents="none"><FiDollarSign color="gray.500" /></InputLeftElement>
+            <InputLeftElement pointerEvents="none"><FiDollarSign color="rgb(209, 213, 219)" /></InputLeftElement>
             <Input
               placeholder="0.00"
               type="number"
@@ -80,6 +82,8 @@ export default function ProductForm({ onCreate }: any) {
               onChange={e => setPreco(e.target.value)}
               bg="dark.900"
               borderColor="dark.700"
+              color="white"
+              _placeholder={{ color: 'gray.300' }}
             />
           </InputGroup>
         </FormControl>
@@ -87,7 +91,7 @@ export default function ProductForm({ onCreate }: any) {
         <FormControl width={{ base: '100%', md: '180px' }}>
           <FormLabel>Estoque Inicial</FormLabel>
           <InputGroup>
-            <InputLeftElement pointerEvents="none"><FiPackage color="gray.500" /></InputLeftElement>
+            <InputLeftElement pointerEvents="none"><FiPackage color="rgb(209, 213, 219)" /></InputLeftElement>
             <Input
               placeholder="0"
               type="number"
@@ -96,6 +100,8 @@ export default function ProductForm({ onCreate }: any) {
               onChange={e => setEstoque(e.target.value)}
               bg="dark.900"
               borderColor="dark.700"
+              color="white"
+              _placeholder={{ color: 'gray.300' }}
             />
           </InputGroup>
         </FormControl>
