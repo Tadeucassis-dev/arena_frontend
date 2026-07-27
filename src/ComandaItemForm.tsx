@@ -16,7 +16,7 @@ import {
   IconButton,
   HStack
 } from '@chakra-ui/react'
-import { FiPlus, FiMinus, FiShoppingCart, FiSearch } from 'react-icons/fi'
+import { FiPlus, FiMinus, FiSearch } from 'react-icons/fi'
 import { Produto } from './types/produtos'
 
 interface Props {
@@ -92,7 +92,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
         <Heading size="md">Adicionar Produtos</Heading>
         <InputGroup maxW="300px">
           <InputLeftElement pointerEvents="none">
-            <FiSearch color="gray" />
+            <FiSearch color="rgb(209, 213, 219)" />
           </InputLeftElement>
           <Input
             placeholder="Buscar produto..."
@@ -100,13 +100,15 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
             onChange={e => setBusca(e.target.value)}
             bg="dark.800"
             borderColor="dark.700"
+            color="white"
+            _placeholder={{ color: 'gray.300' }}
           />
         </InputGroup>
       </Flex>
       
       <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={4}>
         {produtosFiltrados.map(produto => {
-          const qtd = quantidades[produto.id] || 0
+          const qtd = quantidades[produto.id] || 1
           
           return (
             <Card 
@@ -114,10 +116,8 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
               variant="outline" 
               _hover={{ borderColor: 'brand.500', shadow: 'md' }}
               transition="all 0.2s"
-              cursor="pointer"
-              onClick={() => !qtd && handleQuantityChange(produto.id, 1)}
             >
-              <CardBody p={4}>
+              <CardBody p={4} display="flex" flexDirection="column" h="full">
                 <Flex justify="space-between" align="start" mb={2}>
                   <Badge colorScheme={produto.estoque > 0 ? 'green' : 'red'} variant="subtle" fontSize="0.6em">
                     {produto.estoque > 0 ? 'EM ESTOQUE' : 'ESGOTADO'}
@@ -126,49 +126,42 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
                     R$ {Number(produto.preco).toFixed(2)}
                   </Text>
                 </Flex>
-                
-                <Text fontWeight="bold" fontSize="md" mb={4} noOfLines={2} h="2.5em">
+
+                <Text fontWeight="bold" fontSize="md" mb={4} noOfLines={3} minH="4.2em">
                   {produto.nome}
                 </Text>
 
-                {qtd > 0 ? (
-                  <HStack justify="center">
-                    <IconButton
-                      icon={<FiMinus />}
-                      aria-label="Diminuir"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleQuantityChange(produto.id, -1) }}
-                    />
-                    <Text fontWeight="bold" w="30px" textAlign="center">{qtd}</Text>
-                    <IconButton
-                      icon={<FiPlus />}
-                      aria-label="Aumentar"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleQuantityChange(produto.id, 1) }}
-                    />
-                    <Button 
-                      size="sm" 
-                      bg="brand.500"
-                      color="black"
-                      _hover={{ bg: 'brand.400' }}
-                      ml={2}
-                      isLoading={loading}
-                      onClick={(e) => { e.stopPropagation(); handleAdd(produto) }}
-                    >
-                      Add
-                    </Button>
-                  </HStack>
-                ) : (
-                  <Button 
-                    w="full" 
-                    size="sm" 
-                    variant="ghost" 
-                    colorScheme="gray"
-                    leftIcon={<FiShoppingCart />}
-                  >
-                    Selecionar
-                  </Button>
-                )}
+                <HStack justify="center" mb={3}>
+                  <IconButton
+                    icon={<FiMinus />}
+                    aria-label="Diminuir"
+                    size="sm"
+                    onClick={() => handleQuantityChange(produto.id, -1)}
+                    isDisabled={qtd <= 1}
+                  />
+                  <Text fontWeight="bold" w="30px" textAlign="center">{qtd}</Text>
+                  <IconButton
+                    icon={<FiPlus />}
+                    aria-label="Aumentar"
+                    size="sm"
+                    onClick={() => handleQuantityChange(produto.id, 1)}
+                    isDisabled={produto.estoque <= 0}
+                  />
+                </HStack>
+
+                <Button
+                  size="sm"
+                  w="full"
+                  mt="auto"
+                  bg="brand.500"
+                  color="black"
+                  _hover={{ bg: 'brand.400' }}
+                  isLoading={loading}
+                  onClick={() => handleAdd(produto)}
+                  isDisabled={produto.estoque <= 0}
+                >
+                  Adicionar
+                </Button>
               </CardBody>
             </Card>
           )

@@ -169,8 +169,24 @@ export default function ComandaPage({
            </Box>
         </Flex>
 
-        <Stack direction="row" spacing={3}>
-          <Button leftIcon={<FiArrowLeft />} onClick={onVoltar} variant="ghost">Voltar</Button>
+        <Stack
+          direction={{ base: 'column', sm: 'row' }}
+          spacing={3}
+          w={{ base: '100%', md: 'auto' }}
+          align="stretch"
+        >
+          <Button
+            leftIcon={<FiArrowLeft />}
+            onClick={onVoltar}
+            variant="outline"
+            bg="whiteAlpha.100"
+            borderColor="whiteAlpha.300"
+            color="white"
+            _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+            w={{ base: '100%', sm: 'auto' }}
+          >
+            Voltar
+          </Button>
           {comanda.status === 'ABERTA' && (
             <Button
               leftIcon={<FiCheckCircle />}
@@ -180,11 +196,18 @@ export default function ComandaPage({
               onClick={handleFechar}
               isLoading={loading}
               _hover={{ bg: 'brand.400' }}
+              w={{ base: '100%', sm: 'auto' }}
             >
               Fechar Comanda
             </Button>
           )}
-          <Button leftIcon={<FiTrash2 />} colorScheme="red" variant="outline" onClick={handleDelete}>
+          <Button
+            leftIcon={<FiTrash2 />}
+            colorScheme="red"
+            variant="outline"
+            onClick={handleDelete}
+            w={{ base: '100%', sm: 'auto' }}
+          >
             Excluir
           </Button>
         </Stack>

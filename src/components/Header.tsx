@@ -1,9 +1,7 @@
-import { Flex, Image, Button, Text, Stack, Box, useColorModeValue } from '@chakra-ui/react'
+import { Flex, Button, Text, Stack } from '@chakra-ui/react'
 import { FiGrid, FiBox, FiHome } from 'react-icons/fi'
-import Logo from '../assets/logoPreta.png'
 
 export function Header({ hash }: { hash: string }) {
-  const bg = 'dark.900'
   const borderColor = 'dark.700'
   const brandColor = 'brand.500'
 
@@ -27,10 +25,9 @@ export function Header({ hash }: { hash: string }) {
           <Text fontWeight="bold" fontSize="lg" color={brandColor} lineHeight="1.2">
             ARENA CÉSAR
           </Text>
-          <Text fontSize="xs" color="gray.400" letterSpacing="wide" >
+          <Text fontSize="xs" color="gray.300" letterSpacing="wide" >
             CENTRO DE TREINAMENTO E LAZER
           </Text>
-          <Image src={Logo} alt="logo" width={100} height={50} />
         </Stack>
       </Flex>
 
@@ -38,30 +35,36 @@ export function Header({ hash }: { hash: string }) {
         <Button
           variant={hash === '#/' || hash === '' ? 'solid' : 'ghost'}
           colorScheme="brand"
+          bg={hash === '#/' || hash === '' ? brandColor : 'whiteAlpha.100'}
+          color={hash === '#/' || hash === '' ? 'black' : 'white'}
           size="sm"
           leftIcon={<FiHome />}
           onClick={() => (window.location.hash = '#/')}
+          _hover={{ bg: hash === '#/' || hash === '' ? 'brand.400' : 'whiteAlpha.200' }}
         >
           Início
         </Button>
         <Button
           variant={hash.startsWith('#/comandas') ? 'solid' : 'ghost'}
           colorScheme="brand"
+          bg={hash.startsWith('#/comandas') ? brandColor : 'whiteAlpha.100'}
+          color={hash.startsWith('#/comandas') ? 'black' : 'white'}
           size="sm"
           leftIcon={<FiGrid />}
           onClick={() => (window.location.hash = '#/comandas')}
+          _hover={{ bg: hash.startsWith('#/comandas') ? 'brand.400' : 'whiteAlpha.200' }}
         >
           Comandas
         </Button>
         <Button
           leftIcon={<FiBox />}
           variant={hash === '#/produtos' ? 'solid' : 'ghost'}
-          colorScheme={hash === '#/produtos' ? 'brand' : 'gray'}
-          bg={hash === '#/produtos' ? brandColor : 'transparent'}
-          color={hash === '#/produtos' ? 'black' : 'gray.300'}
+          colorScheme="brand"
+          bg={hash === '#/produtos' ? brandColor : 'whiteAlpha.100'}
+          color={hash === '#/produtos' ? 'black' : 'white'}
           onClick={() => (window.location.hash = '#/produtos')}
           size="sm"
-          _hover={{ bg: hash === '#/produtos' ? 'brand.400' : 'whiteAlpha.100' }}
+          _hover={{ bg: hash === '#/produtos' ? 'brand.400' : 'whiteAlpha.200' }}
         >
           Produtos
         </Button>

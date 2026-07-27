@@ -360,12 +360,20 @@ export default function ComandaList({
             />
           </InputGroup>
           
-          <Button onClick={load} isLoading={loading} variant="ghost">
+          <Button
+            onClick={load}
+            isLoading={loading}
+            variant="outline"
+            bg="whiteAlpha.100"
+            borderColor="whiteAlpha.300"
+            color="white"
+            _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+          >
             Atualizar
           </Button>
         </Flex>
 
-        <Flex gap={6} fontSize="sm" color="gray.400" display={{ base: 'none', lg: 'flex' }}>
+        <Flex gap={6} fontSize="sm" color="gray.300" display={{ base: 'none', lg: 'flex' }}>
           <Text>Fechadas: <Text as="span" color="white" fontWeight="bold">{resumo.count}</Text></Text>
           <Text>Faturamento: <Text as="span" color="green.400" fontWeight="bold">{fmtMoney(resumo.faturamento)}</Text></Text>
           <Text>Ticket Médio: <Text as="span" color="brand.400" fontWeight="bold">{fmtMoney(resumo.ticketMedio)}</Text></Text>
@@ -411,7 +419,7 @@ export default function ComandaList({
                  <Badge variant="outline" colorScheme={c.tipoCliente === 'ALUNO' ? 'blue' : 'purple'}>
                     {c.tipoCliente}
                  </Badge>
-                 <Text fontSize="xs" color="gray.500">
+                 <Text fontSize="xs" color="gray.300">
                     {fmtDate(c.dataAbertura)}
                  </Text>
               </Flex>
@@ -435,7 +443,7 @@ export default function ComandaList({
                     ))}
                   </Stack>
                 ) : (
-                  <Text fontSize="xs" color="gray.600" textAlign="center">
+                  <Text fontSize="xs" color="gray.400" textAlign="center">
                     {c.status === 'FECHADA' ? 'Comanda Finalizada' : 'Nenhum item adicionado'}
                   </Text>
                 )}
@@ -443,7 +451,7 @@ export default function ComandaList({
 
               <Flex justify="space-between" align="center" mt="auto" pt={2} borderTop="1px solid" borderColor="dark.700">
                 <Box>
-                  <Text fontSize="xs" color="gray.500">Total</Text>
+                  <Text fontSize="xs" color="gray.300">Total</Text>
                   <Text fontSize="lg" fontWeight="bold" color="green.300">
                     {fmtMoney(c.valorTotal)}
                   </Text>
@@ -468,8 +476,16 @@ export default function ComandaList({
 
       {filtradas.length === 0 && (
         <Flex direction="column" align="center" justify="center" p={10} bg={cardBg} borderRadius="xl">
-            <Text fontSize="xl" color="gray.500">Nenhuma comanda encontrada.</Text>
-            <Button mt={4} onClick={() => { setStatus(''); setBusca(''); }} variant="link" color="brand.400">
+            <Text fontSize="xl" color="gray.300">Nenhuma comanda encontrada.</Text>
+            <Button
+              mt={4}
+              onClick={() => { setStatus(''); setBusca(''); }}
+              variant="outline"
+              bg="whiteAlpha.100"
+              borderColor="whiteAlpha.300"
+              color="white"
+              _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+            >
                 Limpar filtros
             </Button>
         </Flex>
