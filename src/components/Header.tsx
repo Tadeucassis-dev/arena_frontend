@@ -22,14 +22,15 @@ export function Header({ hash }: { hash: string }) {
       zIndex={100}
     >
       <Flex align="center" gap={4} cursor="pointer" onClick={() => window.location.hash = '#/'}>
-        
+
         <Stack spacing={0} display={{ base: 'none', md: 'block' }}>
           <Text fontWeight="bold" fontSize="lg" color={brandColor} lineHeight="1.2">
             ARENA CÉSAR
           </Text>
-          <Text fontSize="xs" color="gray.400" letterSpacing="wide">
+          <Text fontSize="xs" color="gray.400" letterSpacing="wide" >
             CENTRO DE TREINAMENTO E LAZER
           </Text>
+          <Image src={Logo} alt="logo" width={100} height={50} />
         </Stack>
       </Flex>
 
