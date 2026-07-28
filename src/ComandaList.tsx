@@ -13,14 +13,15 @@ import {
   Image,
   FormControl,
   FormLabel,
-  useColorModeValue,
+  FormErrorMessage,
   Icon,
   InputGroup,
   InputLeftElement,
-  Spacer
+  Spinner,
+  useToast
 } from '@chakra-ui/react'
 import { FiSearch, FiPlus, FiUser, FiDollarSign } from 'react-icons/fi'
-import { listarComandas, getItensComanda } from './api'
+import { listarComandas, getItensComanda, getErrorMessage } from './api'
 import Logo from './assets/logoPreta.png'
 
 /* ===================== TIPOS ===================== */
@@ -66,22 +67,24 @@ interface Props {
 
 export default function ComandaList({
   onSelecionar,
-  onFecharComanda,
+  onFecharComanda: _onFecharComanda,
   onAbrirComanda,
   produtos
 }: Props) {
   const [status, setStatus] = useState<Status>('ABERTA')
   const [busca, setBusca] = useState('')
   const [comandas, setComandas] = useState<Comanda[]>([])
-  const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loadingLista, setLoadingLista] = useState(true)
+  const [abrindoComanda, setAbrindoComanda] = useState(false)
 
   const [openNome, setOpenNome] = useState('')
   const [openTipo, setOpenTipo] = useState<'ALUNO' | 'DAY_USE'>('ALUNO')
   const [openValor, setOpenValor] = useState('')
+  const [openErrors, setOpenErrors] = useState<{ nome?: string; valorDayUse?: string }>({})
 
   const buscaRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
 
   const [resumo, setResumo] = useState({
     faturamento: 0,
@@ -116,15 +119,22 @@ export default function ComandaList({
 
   /* ===================== LOAD ===================== */
 
-  async function load() {
-    setLoading(true)
+  async function load(showToast = false) {
+    setLoadingLista(true)
     setErr('')
-    setMsg('')
 
     try {
       const data: Comanda[] = await listarComandas(status || undefined)
       setComandas(data || [])
-      setMsg(`${data.length} comandas carregadas`)
+      if (showToast) {
+        toast({
+          title: 'Lista atualizada',
+          description: `${data.length} comandas carregadas`,
+          status: 'success',
+          isClosable: true,
+          duration: 2000,
+        })
+      }
 
       if (status === 'ABERTA') {
         const results: Item[][] = await Promise.all(
@@ -144,10 +154,17 @@ export default function ComandaList({
         setItensPorComanda({})
       }
     } catch (e) {
-      const error = e as Error
-      setErr(error.message || 'Falha ao listar comandas')
+      const message = getErrorMessage(e, 'Falha ao listar comandas')
+      setErr(message)
+      toast({
+        title: 'Erro ao carregar comandas',
+        description: message,
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
     } finally {
-      setLoading(false)
+      setLoadingLista(false)
     }
   }
 
@@ -164,41 +181,82 @@ export default function ComandaList({
         count,
         ticketMedio: count ? total / count : 0
       })
-    } catch {}
+    } catch (e) {
+      toast({
+        title: 'Resumo indisponivel',
+        description: getErrorMessage(e, 'Nao foi possivel carregar o resumo das comandas'),
+        status: 'warning',
+        isClosable: true,
+        duration: 3500,
+      })
+    }
   }
 
   /* ===================== ACTIONS ===================== */
 
-  async function fechar(id: number) {
-    try {
-      await onFecharComanda(id)
-      setMsg(`Comanda fechada: #${id}`)
-      await load()
-    } catch (e) {
-      const error = e as Error
-      setErr(error.message || 'Erro ao fechar comanda')
+  function validateNovaComanda() {
+    const nextErrors: { nome?: string; valorDayUse?: string } = {}
+    const nomeCliente = openNome.trim().replace(/\s+/g, ' ')
+
+    if (nomeCliente.length < 3) {
+      nextErrors.nome = 'Use pelo menos 3 caracteres'
+    }
+
+    if (openTipo === 'DAY_USE') {
+      const valor = Number(openValor)
+      if (!Number.isFinite(valor) || valor <= 0) {
+        nextErrors.valorDayUse = 'Informe um valor maior que zero'
+      }
+    }
+
+    setOpenErrors(nextErrors)
+
+    return {
+      isValid: Object.keys(nextErrors).length === 0,
+      nomeCliente,
+      valorDayUse: openTipo === 'DAY_USE' ? Number(openValor) : null,
     }
   }
 
   async function abrirNaLista() {
-    try {
-      if (!openNome.trim()) throw new Error('Informe o nome do cliente')
+    if (abrindoComanda) return
 
+    try {
+      const validated = validateNovaComanda()
+      if (!validated.isValid) return
+
+      setAbrindoComanda(true)
       const payload = {
-        nomeCliente: openNome.trim(),
+        nomeCliente: validated.nomeCliente,
         tipoCliente: openTipo,
-        valorDayUse: openValor === '' ? null : Number(openValor)
+        valorDayUse: validated.valorDayUse
       }
 
       const c = await onAbrirComanda(payload)
-      setMsg(`Comanda aberta: #${c.id}`)
-      onSelecionar(c.id)
       setOpenNome('')
       setOpenValor('')
+      setOpenErrors({})
+      toast({
+        title: 'Comanda aberta',
+        description: `Comanda #${c.id} criada com sucesso`,
+        status: 'success',
+        isClosable: true,
+        duration: 2500,
+      })
       await load()
+      onSelecionar(c.id)
     } catch (e) {
-      const error = e as Error
-      setErr(error.message || 'Erro ao abrir comanda')
+      const message = getErrorMessage(e, 'Erro ao abrir comanda')
+      setErr(message)
+      toast({
+        title: 'Erro ao abrir comanda',
+        description: message,
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
+    } finally {
+      setAbrindoComanda(false)
     }
   }
 
@@ -270,18 +328,24 @@ export default function ComandaList({
         </Flex>
         
         <Flex gap={4} wrap="wrap" align="flex-end">
-          <FormControl maxW={{ base: '100%', md: '300px' }}>
+          <FormControl maxW={{ base: '100%', md: '300px' }} isInvalid={!!openErrors.nome}>
             <FormLabel>Nome do Cliente</FormLabel>
             <InputGroup>
               <InputLeftElement pointerEvents="none"><FiUser color="gray.500" /></InputLeftElement>
               <Input
                 placeholder="Ex: João Silva"
                 value={openNome}
-                onChange={e => setOpenNome(e.target.value)}
+                onChange={e => {
+                  setOpenNome(e.target.value)
+                  if (openErrors.nome) {
+                    setOpenErrors(prev => ({ ...prev, nome: undefined }))
+                  }
+                }}
                 bg="dark.900"
                 borderColor="dark.700"
               />
             </InputGroup>
+            <FormErrorMessage>{openErrors.nome}</FormErrorMessage>
           </FormControl>
 
           <FormControl maxW={{ base: '100%', md: '200px' }}>
@@ -298,19 +362,27 @@ export default function ComandaList({
           </FormControl>
 
           {openTipo === 'DAY_USE' && (
-            <FormControl maxW={{ base: '100%', md: '150px' }}>
+            <FormControl maxW={{ base: '100%', md: '150px' }} isInvalid={!!openErrors.valorDayUse}>
               <FormLabel>Valor (R$)</FormLabel>
               <InputGroup>
                 <InputLeftElement pointerEvents="none"><FiDollarSign color="gray.500" /></InputLeftElement>
                 <Input
                   type="number"
+                  min={0}
+                  step="0.01"
                   placeholder="0.00"
                   value={openValor}
-                  onChange={e => setOpenValor(e.target.value)}
+                  onChange={e => {
+                    setOpenValor(e.target.value)
+                    if (openErrors.valorDayUse) {
+                      setOpenErrors(prev => ({ ...prev, valorDayUse: undefined }))
+                    }
+                  }}
                   bg="dark.900"
                   borderColor="dark.700"
                 />
               </InputGroup>
+              <FormErrorMessage>{openErrors.valorDayUse}</FormErrorMessage>
             </FormControl>
           )}
 
@@ -320,7 +392,9 @@ export default function ComandaList({
             bg={brandColor} 
             color="black"
             px={8}
-            isLoading={loading}
+            w={{ base: '100%', md: 'auto' }}
+            isLoading={abrindoComanda}
+            isDisabled={abrindoComanda || loadingLista}
           >
             Abrir Comanda
           </Button>
@@ -335,9 +409,14 @@ export default function ComandaList({
         mb={6}
         gap={4}
       >
-        <Flex gap={3} flex={1}>
+        <Flex
+          gap={3}
+          flex={1}
+          direction={{ base: 'column', md: 'row' }}
+          align={{ base: 'stretch', md: 'center' }}
+        >
           <Select
-            maxW="150px"
+            maxW={{ base: '100%', md: '150px' }}
             value={status}
             onChange={e => setStatus(e.target.value as Status)}
             bg="dark.800"
@@ -348,7 +427,7 @@ export default function ComandaList({
             <option value="FECHADA">Fechadas</option>
           </Select>
 
-          <InputGroup maxW="300px">
+          <InputGroup maxW={{ base: '100%', md: '300px' }}>
             <InputLeftElement pointerEvents="none"><FiSearch color="gray.500" /></InputLeftElement>
             <Input
               ref={buscaRef}
@@ -361,13 +440,15 @@ export default function ComandaList({
           </InputGroup>
           
           <Button
-            onClick={load}
-            isLoading={loading}
+            onClick={() => load(true)}
+            isLoading={loadingLista}
+            isDisabled={abrindoComanda}
             variant="outline"
             bg="whiteAlpha.100"
             borderColor="whiteAlpha.300"
             color="white"
             _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+            w={{ base: '100%', md: 'auto' }}
           >
             Atualizar
           </Button>
@@ -379,6 +460,13 @@ export default function ComandaList({
           <Text>Ticket Médio: <Text as="span" color="brand.400" fontWeight="bold">{fmtMoney(resumo.ticketMedio)}</Text></Text>
         </Flex>
       </Flex>
+
+      {loadingLista && (
+        <Flex justify="center" align="center" gap={3} py={6}>
+          <Spinner color="brand.500" />
+          <Text color="gray.300">Carregando comandas...</Text>
+        </Flex>
+      )}
 
       {/* GRID DE COMANDAS */}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={6}>
@@ -491,8 +579,6 @@ export default function ComandaList({
         </Flex>
       )}
 
-      {!!msg && <Box position="fixed" bottom={4} right={4} bg="green.500" p={3} borderRadius="md" color="white" boxShadow="lg">{msg}</Box>}
-      {!!err && <Box position="fixed" bottom={4} right={4} bg="red.500" p={3} borderRadius="md" color="white" boxShadow="lg">{err}</Box>}
     </Box>
   )
 }

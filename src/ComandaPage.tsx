@@ -11,17 +11,18 @@ import {
   SimpleGrid,
   Alert,
   AlertIcon,
-  useColorModeValue,
+  Spinner,
   Image,
   Icon,
-  Spacer
+  Spacer,
+  useToast
 } from '@chakra-ui/react'
 import { FiArrowLeft, FiTrash2, FiCheckCircle, FiShoppingCart, FiMinus, FiPlus } from 'react-icons/fi'
 
 import { ComandaItemForm } from './ComandaItemForm'
 import Logo from './assets/logoPreta.png'
 import { Produto } from './types/produtos'
-import { atualizarQuantidadeItem } from './api'
+import { atualizarQuantidadeItem, getErrorMessage } from './api'
 
 type ItemComanda = {
   id: number
@@ -65,49 +66,99 @@ export default function ComandaPage({
 }: Props) {
   const [comanda, setComanda] = useState<Comanda | null>(null)
   const [err, setErr] = useState('')
-  const [msg, setMsg] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [carregandoComanda, setCarregandoComanda] = useState(true)
+  const [acaoEmAndamento, setAcaoEmAndamento] = useState<'fechar' | 'excluir' | null>(null)
   const [atualizandoItem, setAtualizandoItem] = useState<number | null>(null)
+  const toast = useToast()
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setErr('')
-        const data = await onGetComanda(comandaId)
-        setComanda(data)
-      } catch (e: unknown) {
-        setErr(e instanceof Error ? e.message : 'Erro ao carregar comanda')
+  async function loadComanda(showPageLoading = true) {
+    try {
+      if (showPageLoading) {
+        setCarregandoComanda(true)
+      }
+
+      setErr('')
+      const data = await onGetComanda(comandaId)
+      setComanda(data)
+      return data
+    } catch (e: unknown) {
+      const message = getErrorMessage(e, 'Erro ao carregar comanda')
+      setErr(message)
+      throw e
+    } finally {
+      if (showPageLoading) {
+        setCarregandoComanda(false)
       }
     }
-    load()
+  }
+
+  useEffect(() => {
+    loadComanda().catch(() => {})
   }, [comandaId])
 
   async function refresh() {
-    const data = await onGetComanda(comandaId)
-    setComanda(data)
+    await loadComanda(false)
     await onProdutosAtualizados?.()
   }
 
   async function handleFechar() {
-    setLoading(true)
+    if (acaoEmAndamento) return
+
+    setAcaoEmAndamento('fechar')
     try {
       await onFecharComanda(comandaId)
-      setMsg('Comanda fechada com sucesso')
       await refresh()
+      toast({
+        title: 'Comanda fechada',
+        description: 'A comanda foi finalizada com sucesso',
+        status: 'success',
+        isClosable: true,
+        duration: 2500,
+      })
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Erro ao fechar comanda')
+      toast({
+        title: 'Erro ao fechar comanda',
+        description: getErrorMessage(e, 'Nao foi possivel fechar a comanda'),
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
     } finally {
-      setLoading(false)
+      setAcaoEmAndamento(null)
     }
   }
 
   async function handleDelete() {
+    if (acaoEmAndamento) return
     if (!confirm('Deseja realmente excluir esta comanda?')) return
-    await onDeletarComanda(comandaId)
+
+    setAcaoEmAndamento('excluir')
+    try {
+      await onDeletarComanda(comandaId)
+      toast({
+        title: 'Comanda excluida',
+        description: 'A comanda foi removida com sucesso',
+        status: 'success',
+        isClosable: true,
+        duration: 2500,
+      })
+      onVoltar()
+    } catch (e: unknown) {
+      toast({
+        title: 'Erro ao excluir comanda',
+        description: getErrorMessage(e, 'Nao foi possivel excluir a comanda'),
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
+    } finally {
+      setAcaoEmAndamento(null)
+    }
   }
 
   async function handleAtualizarQuantidade(produtoId: number, novaQuantidade: number) {
-    if (atualizandoItem === produtoId) return
+    if (atualizandoItem === produtoId || acaoEmAndamento) return
+
     setAtualizandoItem(produtoId)
     try {
       await atualizarQuantidadeItem({
@@ -116,15 +167,39 @@ export default function ComandaPage({
         quantidade: novaQuantidade
       })
       await refresh()
+      toast({
+        title: 'Quantidade atualizada',
+        description: novaQuantidade > 0
+          ? 'O item foi atualizado na comanda'
+          : 'O item foi removido da comanda',
+        status: 'success',
+        isClosable: true,
+        duration: 1500,
+      })
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Erro ao atualizar quantidade')
+      toast({
+        title: 'Erro ao atualizar item',
+        description: getErrorMessage(e, 'Nao foi possivel atualizar a quantidade'),
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
     } finally {
       setAtualizandoItem(null)
     }
   }
 
+  if (carregandoComanda) {
+    return (
+      <Flex minH="240px" align="center" justify="center" direction="column" gap={3}>
+        <Spinner color="brand.500" thickness="3px" size="xl" />
+        <Text color="gray.300">Carregando comanda...</Text>
+      </Flex>
+    )
+  }
+
   if (!comanda) {
-    return <Text>Carregando comanda...</Text>
+    return <Text color="gray.300">Comanda nao encontrada.</Text>
   }
 
   const bgCard = 'dark.800'
@@ -194,7 +269,8 @@ export default function ComandaPage({
               bg={brandColor}
               color="black"
               onClick={handleFechar}
-              isLoading={loading}
+              isLoading={acaoEmAndamento === 'fechar'}
+              isDisabled={!!acaoEmAndamento || atualizandoItem !== null}
               _hover={{ bg: 'brand.400' }}
               w={{ base: '100%', sm: 'auto' }}
             >
@@ -206,20 +282,14 @@ export default function ComandaPage({
             colorScheme="red"
             variant="outline"
             onClick={handleDelete}
+            isLoading={acaoEmAndamento === 'excluir'}
+            isDisabled={!!acaoEmAndamento || atualizandoItem !== null}
             w={{ base: '100%', sm: 'auto' }}
           >
             Excluir
           </Button>
         </Stack>
       </Flex>
-
-      {/* MENSAGENS */}
-      {msg && (
-        <Alert status="success" mb={4} borderRadius="md">
-          <AlertIcon />
-          {msg}
-        </Alert>
-      )}
 
       {err && (
         <Alert status="error" mb={4} borderRadius="md">
@@ -244,6 +314,7 @@ export default function ComandaPage({
                   produtos={produtos} 
                   selectedComandaId={comanda.id}
                   onAddItem={async payload => {
+                    if (acaoEmAndamento) return
                     const res = await onAddItem(payload)
                     await refresh()
                     return res
@@ -256,8 +327,8 @@ export default function ComandaPage({
         {/* COLUNA DIREITA: RECIBO / CART (MENOR E STICKY) */}
         <Box>
            <Box 
-            position="sticky" 
-            top="100px" 
+            position={{ base: 'static', lg: 'sticky' }} 
+            top={{ lg: '100px' }} 
             bg={bgCard} 
             p={0} 
             borderRadius="xl" 
@@ -266,7 +337,7 @@ export default function ComandaPage({
             overflow="hidden"
             display="flex"
             flexDirection="column"
-            maxH="calc(100vh - 120px)"
+            maxH={{ base: 'none', lg: 'calc(100vh - 120px)' }}
           >
             <Box p={5} bg="dark.900" borderBottom="1px solid" borderColor={borderCard}>
                <Flex align="center" gap={2}>
@@ -288,7 +359,9 @@ export default function ComandaPage({
                 <Flex
                   key={item.id}
                   justify="space-between"
-                  align="center"
+                  align={{ base: 'stretch', sm: 'center' }}
+                  direction={{ base: 'column', sm: 'row' }}
+                  gap={{ base: 3, sm: 0 }}
                   p={4}
                   _hover={{ bg: 'dark.700' }}
                   transition="background 0.2s"
@@ -302,14 +375,14 @@ export default function ComandaPage({
 
                   {/* Controles de quantidade */}
                   {comanda.status === 'ABERTA' && (
-                    <Flex align="center" gap={2} mr={4}>
+                    <Flex align="center" gap={2} mr={{ base: 0, sm: 4 }}>
                       <Button
                         size="xs"
                         colorScheme="red"
                         variant="outline"
                         onClick={() => handleAtualizarQuantidade(item.produto.id, item.quantidade - 1)}
                         isLoading={atualizandoItem === item.produto.id}
-                        disabled={atualizandoItem === item.produto.id}
+                        isDisabled={atualizandoItem === item.produto.id || !!acaoEmAndamento}
                       >
                         <Icon as={FiMinus} />
                       </Button>
@@ -322,7 +395,7 @@ export default function ComandaPage({
                         variant="outline"
                         onClick={() => handleAtualizarQuantidade(item.produto.id, item.quantidade + 1)}
                         isLoading={atualizandoItem === item.produto.id}
-                        disabled={atualizandoItem === item.produto.id}
+                        isDisabled={atualizandoItem === item.produto.id || !!acaoEmAndamento}
                       >
                         <Icon as={FiPlus} />
                       </Button>
@@ -330,7 +403,7 @@ export default function ComandaPage({
                   )}
 
                   {/* Subtotal */}
-                  <Box minW="100px" textAlign="right">
+                  <Box minW={{ base: 'auto', sm: '100px' }} textAlign={{ base: 'left', sm: 'right' }}>
                     {comanda.status === 'ABERTA' && (
                       <Text fontSize="sm" color="gray.400">
                         {item.quantidade} × R$ {(item.produto.preco || 0).toFixed(2)}

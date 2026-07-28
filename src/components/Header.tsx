@@ -10,16 +10,25 @@ export function Header({ hash }: { hash: string }) {
       bgColor={'blackAlpha.900'}
       px={{ base: 4, md: 8 }}
       py={4}
+      direction={{ base: 'column', md: 'row' }}
       justify="space-between"
-      align="center"
+      align={{ base: 'stretch', md: 'center' }}
       borderBottom="1px solid"
       borderColor={borderColor}
       boxShadow="sm"
       position="sticky"
       top={0}
       zIndex={100}
+      gap={{ base: 3, md: 0 }}
     >
-      <Flex align="center" gap={4} cursor="pointer" onClick={() => window.location.hash = '#/'}>
+      <Flex
+        align="center"
+        justify={{ base: 'center', md: 'flex-start' }}
+        gap={4}
+        cursor="pointer"
+        w={{ base: '100%', md: 'auto' }}
+        onClick={() => window.location.hash = '#/'}
+      >
 
         <Stack spacing={0} display={{ base: 'none', md: 'block' }}>
           <Text fontWeight="bold" fontSize="lg" color={brandColor} lineHeight="1.2">
@@ -31,7 +40,11 @@ export function Header({ hash }: { hash: string }) {
         </Stack>
       </Flex>
 
-      <Flex gap={2}>
+      <Stack
+        direction={{ base: 'column', sm: 'row' }}
+        spacing={2}
+        w={{ base: '100%', md: 'auto' }}
+      >
         <Button
           variant={hash === '#/' || hash === '' ? 'solid' : 'ghost'}
           colorScheme="brand"
@@ -41,6 +54,7 @@ export function Header({ hash }: { hash: string }) {
           leftIcon={<FiHome />}
           onClick={() => (window.location.hash = '#/')}
           _hover={{ bg: hash === '#/' || hash === '' ? 'brand.400' : 'whiteAlpha.200' }}
+          w={{ base: '100%', sm: 'auto' }}
         >
           Início
         </Button>
@@ -53,6 +67,7 @@ export function Header({ hash }: { hash: string }) {
           leftIcon={<FiGrid />}
           onClick={() => (window.location.hash = '#/comandas')}
           _hover={{ bg: hash.startsWith('#/comandas') ? 'brand.400' : 'whiteAlpha.200' }}
+          w={{ base: '100%', sm: 'auto' }}
         >
           Comandas
         </Button>
@@ -65,10 +80,11 @@ export function Header({ hash }: { hash: string }) {
           onClick={() => (window.location.hash = '#/produtos')}
           size="sm"
           _hover={{ bg: hash === '#/produtos' ? 'brand.400' : 'whiteAlpha.200' }}
+          w={{ base: '100%', sm: 'auto' }}
         >
           Produtos
         </Button>
-      </Flex>
+      </Stack>
     </Flex>
   )
 }

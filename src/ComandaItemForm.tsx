@@ -18,6 +18,7 @@ import {
 } from '@chakra-ui/react'
 import { FiPlus, FiMinus, FiSearch } from 'react-icons/fi'
 import { Produto } from './types/produtos'
+import { getErrorMessage } from './api'
 
 interface Props {
   produtos: Produto[]
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Props) {
-  const [loading, setLoading] = useState(false)
+  const [produtoEmEnvio, setProdutoEmEnvio] = useState<number | null>(null)
   const [quantidades, setQuantidades] = useState<Record<number, number>>({})
   const [busca, setBusca] = useState('')
   const toast = useToast()
@@ -43,14 +44,31 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
     .sort((a, b) => a.nome.localeCompare(b.nome))
 
   const handleQuantityChange = (id: number, delta: number) => {
+    const produto = produtos.find(item => item.id === id)
+    const estoqueDisponivel = produto?.estoque ?? 0
+
     setQuantidades(prev => {
-      const current = prev[id] || 0
-      const next = Math.max(0, current + delta)
+      const current = prev[id] || 1
+      const next = Math.max(1, current + delta)
+
+      if (delta > 0 && next > estoqueDisponivel) {
+        toast({
+          title: 'Estoque limite atingido',
+          description: `Disponivel: ${estoqueDisponivel} unidade(s) de ${produto?.nome || 'produto'}`,
+          status: 'warning',
+          duration: 2500,
+          isClosable: true,
+        })
+        return prev
+      }
+
       return { ...prev, [id]: next }
     })
   }
 
   async function handleAdd(produto: Produto) {
+    if (produtoEmEnvio === produto.id) return
+
     if (!selectedComandaId) {
         toast({ title: 'Selecione uma comanda', status: 'error' })
         return
@@ -58,8 +76,18 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
 
     const qtd = quantidades[produto.id] || 1
     if (qtd <= 0) return
+    if (qtd > (produto.estoque ?? 0)) {
+      toast({
+        title: 'Quantidade acima do estoque',
+        description: `Disponivel: ${produto.estoque ?? 0} unidade(s)`,
+        status: 'warning',
+        duration: 2500,
+        isClosable: true,
+      })
+      return
+    }
 
-    setLoading(true)
+    setProdutoEmEnvio(produto.id)
     try {
       await onAddItem({
           comandaId: selectedComandaId,
@@ -71,26 +99,35 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
         title: 'Item adicionado',
         description: `${qtd}x ${produto.nome}`,
         status: 'success',
-        duration: 1000,
+        duration: 1500,
         isClosable: true,
       })
       // Reset quantidade
-      setQuantidades(prev => ({ ...prev, [produto.id]: 0 }))
+      setQuantidades(prev => ({ ...prev, [produto.id]: 1 }))
     } catch (err) {
       toast({
         title: 'Erro ao adicionar item',
+        description: getErrorMessage(err, 'Nao foi possivel adicionar o item'),
         status: 'error',
+        duration: 4000,
+        isClosable: true,
       })
     } finally {
-      setLoading(false)
+      setProdutoEmEnvio(null)
     }
   }
 
   return (
     <Box>
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex
+        justify="space-between"
+        align={{ base: 'stretch', sm: 'center' }}
+        direction={{ base: 'column', sm: 'row' }}
+        gap={{ base: 3, sm: 4 }}
+        mb={4}
+      >
         <Heading size="md">Adicionar Produtos</Heading>
-        <InputGroup maxW="300px">
+        <InputGroup maxW={{ base: '100%', sm: '320px' }}>
           <InputLeftElement pointerEvents="none">
             <FiSearch color="rgb(209, 213, 219)" />
           </InputLeftElement>
@@ -106,7 +143,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
         </InputGroup>
       </Flex>
       
-      <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={4}>
+      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={{ base: 3, md: 4 }}>
         {produtosFiltrados.map(produto => {
           const qtd = quantidades[produto.id] || 1
           
@@ -117,7 +154,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
               _hover={{ borderColor: 'brand.500', shadow: 'md' }}
               transition="all 0.2s"
             >
-              <CardBody p={4} display="flex" flexDirection="column" h="full">
+              <CardBody p={{ base: 3, md: 4 }} display="flex" flexDirection="column" h="full">
                 <Flex justify="space-between" align="start" mb={2}>
                   <Badge colorScheme={produto.estoque > 0 ? 'green' : 'red'} variant="subtle" fontSize="0.6em">
                     {produto.estoque > 0 ? 'EM ESTOQUE' : 'ESGOTADO'}
@@ -131,13 +168,17 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
                   {produto.nome}
                 </Text>
 
+                <Text fontSize="xs" color="gray.400" mb={3}>
+                  Disponivel: {produto.estoque} unidade(s)
+                </Text>
+
                 <HStack justify="center" mb={3}>
                   <IconButton
                     icon={<FiMinus />}
                     aria-label="Diminuir"
                     size="sm"
                     onClick={() => handleQuantityChange(produto.id, -1)}
-                    isDisabled={qtd <= 1}
+                    isDisabled={qtd <= 1 || produtoEmEnvio !== null}
                   />
                   <Text fontWeight="bold" w="30px" textAlign="center">{qtd}</Text>
                   <IconButton
@@ -145,7 +186,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
                     aria-label="Aumentar"
                     size="sm"
                     onClick={() => handleQuantityChange(produto.id, 1)}
-                    isDisabled={produto.estoque <= 0}
+                    isDisabled={produto.estoque <= 0 || qtd >= produto.estoque || produtoEmEnvio !== null}
                   />
                 </HStack>
 
@@ -156,9 +197,9 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
                   bg="brand.500"
                   color="black"
                   _hover={{ bg: 'brand.400' }}
-                  isLoading={loading}
+                  isLoading={produtoEmEnvio === produto.id}
                   onClick={() => handleAdd(produto)}
-                  isDisabled={produto.estoque <= 0}
+                  isDisabled={produto.estoque <= 0 || produtoEmEnvio !== null}
                 >
                   Adicionar
                 </Button>

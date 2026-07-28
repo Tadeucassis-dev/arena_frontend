@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Box,
+  Alert,
+  AlertIcon,
   Button,
-  ButtonGroup,
   SimpleGrid,
   Stat,
   StatLabel,
@@ -16,10 +17,12 @@ import {
   Card,
   CardBody,
   Stack,
-  Progress
+  Progress,
+  Spinner,
+  useToast
 } from '@chakra-ui/react'
 import { FiDollarSign, FiUsers, FiShoppingBag, FiActivity } from 'react-icons/fi'
-import { listarComandas, getProdutos } from './api'
+import { listarComandas, getProdutos, getErrorMessage } from './api'
 import { Comanda } from './types/comanda'
 import { Produto } from './types/produtos'
 
@@ -29,26 +32,49 @@ export default function Dashboard() {
   const [comandas, setComandas] = useState<Comanda[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
   const [periodo, setPeriodo] = useState<PeriodoFaturamento>('hoje')
+  const toast = useToast()
 
   const bgCard = 'dark.800'
   const textColor = 'gray.300'
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [cmds, prods] = await Promise.all([
-          listarComandas(),
-          getProdutos()
-        ])
-        setComandas(cmds)
-        setProdutos(prods)
-      } catch (error) {
-        console.error("Erro ao carregar dashboard", error)
-      } finally {
-        setLoading(false)
+  async function loadData(showToast = false) {
+    setLoading(true)
+    setErr('')
+    try {
+      const [cmds, prods] = await Promise.all([
+        listarComandas(),
+        getProdutos()
+      ])
+      setComandas(cmds)
+      setProdutos(prods)
+
+      if (showToast) {
+        toast({
+          title: 'Dashboard atualizado',
+          description: 'Os indicadores foram recarregados com sucesso',
+          status: 'success',
+          isClosable: true,
+          duration: 2000,
+        })
       }
+    } catch (error) {
+      const message = getErrorMessage(error, 'Erro ao carregar dashboard')
+      setErr(message)
+      toast({
+        title: 'Erro ao carregar dashboard',
+        description: message,
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
 
@@ -120,7 +146,7 @@ export default function Dashboard() {
           <Flex align="center" justify="space-between">
             <Box>
               <StatLabel color={textColor}>{title}</StatLabel>
-              <StatNumber fontSize="3xl" fontWeight="bold" color="white">{value}</StatNumber>
+              <StatNumber fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color="white">{value}</StatNumber>
               {helpText && <StatHelpText mb={0} color="gray.300">{helpText}</StatHelpText>}
             </Box>
             <Box p={3} bg={`${color}.900`} borderRadius="lg" border="1px solid" borderColor={`${color}.700`}>
@@ -137,13 +163,18 @@ export default function Dashboard() {
       <Flex mb={6} justify="space-between" align={{ base: 'start', md: 'center' }} gap={4} wrap="wrap">
         <Heading size="lg">Visão Geral</Heading>
 
-        <ButtonGroup isAttached variant="outline" size="sm" flexWrap="wrap">
+        <Stack
+          direction={{ base: 'column', sm: 'row' }}
+          spacing={2}
+          w={{ base: '100%', md: 'auto' }}
+        >
           <Button
             onClick={() => setPeriodo('hoje')}
             bg={periodo === 'hoje' ? 'brand.500' : 'whiteAlpha.100'}
             color={periodo === 'hoje' ? 'black' : 'white'}
             borderColor={periodo === 'hoje' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'hoje' ? 'brand.400' : 'whiteAlpha.200' }}
+            w={{ base: '100%', sm: 'auto' }}
           >
             Hoje
           </Button>
@@ -153,6 +184,7 @@ export default function Dashboard() {
             color={periodo === 'semana' ? 'black' : 'white'}
             borderColor={periodo === 'semana' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'semana' ? 'brand.400' : 'whiteAlpha.200' }}
+            w={{ base: '100%', sm: 'auto' }}
           >
             Semanal
           </Button>
@@ -162,6 +194,7 @@ export default function Dashboard() {
             color={periodo === 'mes' ? 'black' : 'white'}
             borderColor={periodo === 'mes' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'mes' ? 'brand.400' : 'whiteAlpha.200' }}
+            w={{ base: '100%', sm: 'auto' }}
           >
             Mensal
           </Button>
@@ -171,11 +204,38 @@ export default function Dashboard() {
             color={periodo === 'ano' ? 'black' : 'white'}
             borderColor={periodo === 'ano' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'ano' ? 'brand.400' : 'whiteAlpha.200' }}
+            w={{ base: '100%', sm: 'auto' }}
           >
             Anual
           </Button>
-        </ButtonGroup>
+        </Stack>
+        <Button
+          variant="outline"
+          bg="whiteAlpha.100"
+          borderColor="whiteAlpha.300"
+          color="white"
+          _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+          isLoading={loading}
+          onClick={() => loadData(true)}
+          w={{ base: '100%', md: 'auto' }}
+        >
+          Atualizar
+        </Button>
       </Flex>
+
+      {loading && (
+        <Flex justify="center" align="center" gap={3} py={8}>
+          <Spinner color="brand.500" thickness="3px" />
+          <Text color="gray.300">Carregando dashboard...</Text>
+        </Flex>
+      )}
+
+      {err && (
+        <Alert status="error" mb={6} borderRadius="md">
+          <AlertIcon />
+          {err}
+        </Alert>
+      )}
       
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 5 }} spacing={6} mb={8}>
         <CardStats 
