@@ -6,6 +6,7 @@ import {
   Heading, 
   FormControl, 
   FormLabel, 
+  FormErrorMessage,
   InputGroup, 
   InputLeftElement,
   Flex,
@@ -13,29 +14,69 @@ import {
 } from '@chakra-ui/react'
 import { FiPlus, FiTag, FiDollarSign, FiPackage } from 'react-icons/fi'
 
-export default function ProductForm({ onCreate }: any) {
+type Props = {
+  onCreate: (payload: {
+    nome: string
+    preco: number
+    estoque: number
+  }) => Promise<void>
+  isSubmitting?: boolean
+}
+
+export default function ProductForm({ onCreate, isSubmitting = false }: Props) {
   const [nome, setNome] = useState('')
   const [preco, setPreco] = useState('')
   const [estoque, setEstoque] = useState('0')
-  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<{ nome?: string; preco?: string; estoque?: string }>({})
 
   const cardBg = 'dark.800'
   const cardBorder = 'dark.700'
 
+  function validate() {
+    const nextErrors: { nome?: string; preco?: string; estoque?: string } = {}
+    const nomeNormalizado = nome.trim().replace(/\s+/g, ' ')
+    const precoNumero = Number(preco)
+    const estoqueNumero = Number(estoque)
+
+    if (nomeNormalizado.length < 3) {
+      nextErrors.nome = 'Use pelo menos 3 caracteres'
+    }
+
+    if (!Number.isFinite(precoNumero) || precoNumero <= 0) {
+      nextErrors.preco = 'Informe um preco maior que zero'
+    }
+
+    if (!Number.isInteger(estoqueNumero) || estoqueNumero < 0) {
+      nextErrors.estoque = 'Informe um estoque inteiro maior ou igual a zero'
+    }
+
+    setErrors(nextErrors)
+    return {
+      isValid: Object.keys(nextErrors).length === 0,
+      nome: nomeNormalizado,
+      preco: precoNumero,
+      estoque: estoqueNumero,
+    }
+  }
+
   async function submit() {
-    if (!nome || !preco) return
-    setLoading(true)
+    if (isSubmitting) return
+
+    const validated = validate()
+    if (!validated.isValid) return
+
     try {
       await onCreate({
-        nome,
-        preco: Number(preco),
-        estoque: Math.max(0, Number(estoque) || 0),
+        nome: validated.nome,
+        preco: validated.preco,
+        estoque: validated.estoque,
       })
       setNome('')
       setPreco('')
       setEstoque('0')
-    } finally {
-      setLoading(false)
+      setErrors({})
+    } catch {
+      // O feedback da falha eh centralizado no componente pai.
     }
   }
 
@@ -55,40 +96,54 @@ export default function ProductForm({ onCreate }: any) {
       </Flex>
 
       <Flex gap={4} wrap="wrap" align="flex-end">
-        <FormControl flex={1} minW="200px">
+        <FormControl flex={1} minW="200px" isInvalid={!!errors.nome}>
           <FormLabel>Nome do Produto</FormLabel>
           <InputGroup>
             <InputLeftElement pointerEvents="none"><FiTag color="rgb(209, 213, 219)" /></InputLeftElement>
             <Input
               placeholder="Ex: Água Mineral"
               value={nome}
-              onChange={e => setNome(e.target.value)}
+              onChange={e => {
+                setNome(e.target.value)
+                if (errors.nome) {
+                  setErrors(prev => ({ ...prev, nome: undefined }))
+                }
+              }}
               bg="dark.900"
               borderColor="dark.700"
               color="white"
               _placeholder={{ color: 'gray.300' }}
             />
           </InputGroup>
+          <FormErrorMessage>{errors.nome}</FormErrorMessage>
         </FormControl>
 
-        <FormControl width={{ base: '100%', md: '200px' }}>
+        <FormControl width={{ base: '100%', md: '200px' }} isInvalid={!!errors.preco}>
           <FormLabel>Preço (R$)</FormLabel>
           <InputGroup>
             <InputLeftElement pointerEvents="none"><FiDollarSign color="rgb(209, 213, 219)" /></InputLeftElement>
             <Input
               placeholder="0.00"
               type="number"
+              min={0}
+              step="0.01"
               value={preco}
-              onChange={e => setPreco(e.target.value)}
+              onChange={e => {
+                setPreco(e.target.value)
+                if (errors.preco) {
+                  setErrors(prev => ({ ...prev, preco: undefined }))
+                }
+              }}
               bg="dark.900"
               borderColor="dark.700"
               color="white"
               _placeholder={{ color: 'gray.300' }}
             />
           </InputGroup>
+          <FormErrorMessage>{errors.preco}</FormErrorMessage>
         </FormControl>
 
-        <FormControl width={{ base: '100%', md: '180px' }}>
+        <FormControl width={{ base: '100%', md: '180px' }} isInvalid={!!errors.estoque}>
           <FormLabel>Estoque Inicial</FormLabel>
           <InputGroup>
             <InputLeftElement pointerEvents="none"><FiPackage color="rgb(209, 213, 219)" /></InputLeftElement>
@@ -96,14 +151,21 @@ export default function ProductForm({ onCreate }: any) {
               placeholder="0"
               type="number"
               min={0}
+              step="1"
               value={estoque}
-              onChange={e => setEstoque(e.target.value)}
+              onChange={e => {
+                setEstoque(e.target.value)
+                if (errors.estoque) {
+                  setErrors(prev => ({ ...prev, estoque: undefined }))
+                }
+              }}
               bg="dark.900"
               borderColor="dark.700"
               color="white"
               _placeholder={{ color: 'gray.300' }}
             />
           </InputGroup>
+          <FormErrorMessage>{errors.estoque}</FormErrorMessage>
         </FormControl>
 
         <Button 
@@ -111,7 +173,8 @@ export default function ProductForm({ onCreate }: any) {
           bg="brand.500" 
           color="black"
           onClick={submit}
-          isLoading={loading}
+          isLoading={isSubmitting}
+          isDisabled={isSubmitting}
           px={8}
           minW="120px"
         >

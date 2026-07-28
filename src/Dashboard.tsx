@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   Box,
+  Alert,
+  AlertIcon,
   Button,
   ButtonGroup,
   SimpleGrid,
@@ -16,10 +18,12 @@ import {
   Card,
   CardBody,
   Stack,
-  Progress
+  Progress,
+  Spinner,
+  useToast
 } from '@chakra-ui/react'
 import { FiDollarSign, FiUsers, FiShoppingBag, FiActivity } from 'react-icons/fi'
-import { listarComandas, getProdutos } from './api'
+import { listarComandas, getProdutos, getErrorMessage } from './api'
 import { Comanda } from './types/comanda'
 import { Produto } from './types/produtos'
 
@@ -29,26 +33,49 @@ export default function Dashboard() {
   const [comandas, setComandas] = useState<Comanda[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
   const [periodo, setPeriodo] = useState<PeriodoFaturamento>('hoje')
+  const toast = useToast()
 
   const bgCard = 'dark.800'
   const textColor = 'gray.300'
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [cmds, prods] = await Promise.all([
-          listarComandas(),
-          getProdutos()
-        ])
-        setComandas(cmds)
-        setProdutos(prods)
-      } catch (error) {
-        console.error("Erro ao carregar dashboard", error)
-      } finally {
-        setLoading(false)
+  async function loadData(showToast = false) {
+    setLoading(true)
+    setErr('')
+    try {
+      const [cmds, prods] = await Promise.all([
+        listarComandas(),
+        getProdutos()
+      ])
+      setComandas(cmds)
+      setProdutos(prods)
+
+      if (showToast) {
+        toast({
+          title: 'Dashboard atualizado',
+          description: 'Os indicadores foram recarregados com sucesso',
+          status: 'success',
+          isClosable: true,
+          duration: 2000,
+        })
       }
+    } catch (error) {
+      const message = getErrorMessage(error, 'Erro ao carregar dashboard')
+      setErr(message)
+      toast({
+        title: 'Erro ao carregar dashboard',
+        description: message,
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
 
@@ -175,7 +202,32 @@ export default function Dashboard() {
             Anual
           </Button>
         </ButtonGroup>
+        <Button
+          variant="outline"
+          bg="whiteAlpha.100"
+          borderColor="whiteAlpha.300"
+          color="white"
+          _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+          isLoading={loading}
+          onClick={() => loadData(true)}
+        >
+          Atualizar
+        </Button>
       </Flex>
+
+      {loading && (
+        <Flex justify="center" align="center" gap={3} py={8}>
+          <Spinner color="brand.500" thickness="3px" />
+          <Text color="gray.300">Carregando dashboard...</Text>
+        </Flex>
+      )}
+
+      {err && (
+        <Alert status="error" mb={6} borderRadius="md">
+          <AlertIcon />
+          {err}
+        </Alert>
+      )}
       
       <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 5 }} spacing={6} mb={8}>
         <CardStats 

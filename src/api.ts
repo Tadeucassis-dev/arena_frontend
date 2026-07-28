@@ -10,23 +10,80 @@ type RequestOptions = RequestInit & {
 
 /* ===================== HELPER ===================== */
 
+export class ApiError extends Error {
+  status?: number
+
+  constructor(message: string, status?: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+  }
+}
+
+function normalizeErrorPayload(payload: string) {
+  const text = payload.trim()
+
+  if (!text) return ''
+
+  try {
+    const parsed = JSON.parse(text)
+
+    if (typeof parsed === 'string') return parsed
+    if (parsed?.message) return String(parsed.message)
+    if (parsed?.error) return String(parsed.error)
+  } catch {
+    // Mantem o texto puro se nao for JSON
+  }
+
+  return text.replace(/^"|"$/g, '')
+}
+
+export function getErrorMessage(
+  error: unknown,
+  fallback = 'Nao foi possivel concluir a acao'
+) {
+  if (error instanceof ApiError) {
+    return error.message || fallback
+  }
+
+  if (error instanceof Error) {
+    if (
+      error.message.includes('Failed to fetch') ||
+      error.message.includes('NetworkError') ||
+      error.message.includes('Load failed')
+    ) {
+      return 'Nao foi possivel conectar a API. Verifique a conexao e o CORS do backend.'
+    }
+
+    return error.message || fallback
+  }
+
+  return fallback
+}
+
 async function request<T = any>(
   url: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const hasBody = options.body != null
 
-  const res = await fetch(`${BASE_URL}${url}`, {
-    ...options,
-    headers: {
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.headers || {}),
-    },
-  })
+  let res: Response
+
+  try {
+    res = await fetch(`${BASE_URL}${url}`, {
+      ...options,
+      headers: {
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {}),
+      },
+    })
+  } catch (error) {
+    throw new ApiError(getErrorMessage(error, 'Falha ao conectar com o servidor'))
+  }
 
   if (!res.ok) {
-    const msg = await res.text()
-    throw new Error(msg || 'Erro na requisição')
+    const msg = normalizeErrorPayload(await res.text())
+    throw new ApiError(msg || 'Erro na requisicao', res.status)
   }
 
   // No Content
@@ -79,6 +136,71 @@ const saveDb = () => {
 
 const delay = (ms = 400) => new Promise(resolve => setTimeout(resolve, ms))
 
+const normalizeTextValue = (value?: string | null) =>
+  String(value || '').trim().replace(/\s+/g, ' ')
+
+function ensureValidProductPayload(payload: { nome?: string; preco?: number | null; estoque?: number | null }) {
+  const nome = normalizeTextValue(payload.nome)
+  const preco = Number(payload.preco)
+  const estoque = payload.estoque == null ? 0 : Number(payload.estoque)
+
+  if (nome.length < 3) {
+    throw new Error('Informe um nome de produto com pelo menos 3 caracteres')
+  }
+
+  if (!Number.isFinite(preco) || preco <= 0) {
+    throw new Error('Informe um preco valido maior que zero')
+  }
+
+  if (!Number.isInteger(estoque) || estoque < 0) {
+    throw new Error('Informe um estoque inicial valido')
+  }
+
+  return { nome, preco, estoque }
+}
+
+function ensureValidComandaPayload(payload: {
+  nomeCliente?: string
+  tipoCliente?: 'ALUNO' | 'DAY_USE'
+  valorDayUse?: number | null
+}) {
+  const nomeCliente = normalizeTextValue(payload.nomeCliente)
+
+  if (nomeCliente.length < 3) {
+    throw new Error('Informe o nome do cliente com pelo menos 3 caracteres')
+  }
+
+  if (payload.tipoCliente !== 'ALUNO' && payload.tipoCliente !== 'DAY_USE') {
+    throw new Error('Selecione um tipo de comanda valido')
+  }
+
+  if (payload.tipoCliente === 'DAY_USE') {
+    const valor = Number(payload.valorDayUse)
+
+    if (!Number.isFinite(valor) || valor <= 0) {
+      throw new Error('Informe um valor de Day Use maior que zero')
+    }
+
+    return {
+      nomeCliente,
+      tipoCliente: payload.tipoCliente,
+      valorDayUse: valor,
+    }
+  }
+
+  return {
+    nomeCliente,
+    tipoCliente: payload.tipoCliente,
+    valorDayUse: null,
+  }
+}
+
+function ensureValidQuantidade(quantidade: number, fallbackMessage = 'Informe uma quantidade valida') {
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    throw new Error(fallbackMessage)
+  }
+}
+
 const recalcComandaTotal = (comanda: any) => {
   comanda.valorTotal =
     (comanda.valorDayUse || 0) +
@@ -113,8 +235,9 @@ const MockAPI = {
 
   criarProduto: async (payload: any) => {
     await delay()
+    const produto = ensureValidProductPayload(payload)
     const newId = Date.now()
-    const p = { id: newId, ...payload }
+    const p = { id: newId, ...produto }
     if (!db.produtos) db.produtos = []
     db.produtos.push(p)
     saveDb()
@@ -126,7 +249,14 @@ const MockAPI = {
     if (!db.produtos) return null
     const idx = db.produtos.findIndex((p: any) => p.id === Number(id))
     if (idx === -1) throw new Error('Produto não encontrado')
-    db.produtos[idx] = { ...db.produtos[idx], ...payload }
+    const proximoProduto = {
+      ...db.produtos[idx],
+      ...payload,
+    }
+    db.produtos[idx] = {
+      ...db.produtos[idx],
+      ...ensureValidProductPayload(proximoProduto),
+    }
     saveDb()
     return db.produtos[idx]
   },
@@ -140,13 +270,14 @@ const MockAPI = {
 
   abrirComanda: async (payload: any) => {
     await delay()
+    const comandaPayload = ensureValidComandaPayload(payload)
     const newId = Date.now()
     const c = {
       id: newId,
-      ...payload,
+      ...comandaPayload,
       status: 'ABERTA',
       itens: [],
-      valorTotal: payload.valorDayUse || 0,
+      valorTotal: comandaPayload.valorDayUse || 0,
       dataAbertura: new Date().toISOString()
     }
     if (!db.comandas) db.comandas = []
@@ -192,8 +323,10 @@ const MockAPI = {
   adicionarItemComanda: async (payload: any) => {
     await delay()
     const { comandaId, produtoId, quantidade } = payload
+    ensureValidQuantidade(quantidade, 'Informe uma quantidade maior que zero')
     const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
     if (!c) throw new Error('Comanda não encontrada')
+    if (c.status !== 'ABERTA') throw new Error('Nao e possivel adicionar itens em uma comanda fechada')
 
     const produto = (db.produtos || []).find((p: any) => p.id === Number(produtoId))
     const prodData = produto || { id: produtoId, nome: 'Produto Mock', preco: 10 }
@@ -232,6 +365,7 @@ const MockAPI = {
     const { comandaId, produtoId, quantidade } = payload
     const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
     if (!c) throw new Error('Comanda não encontrada')
+    if (c.status !== 'ABERTA') throw new Error('Nao e possivel alterar itens em uma comanda fechada')
     if (!c.itens) c.itens = []
 
     const itemIndex = c.itens.findIndex((it: any) => it.produto.id === Number(produtoId))
@@ -252,6 +386,7 @@ const MockAPI = {
       }
       c.itens.splice(itemIndex, 1)
     } else {
+      ensureValidQuantidade(quantidade, 'Informe uma quantidade valida para o item')
       if (produto) {
         if (diferenca > 0) {
           const estoqueAtual = produto.estoque || 0

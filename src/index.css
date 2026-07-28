@@ -68,7 +68,7 @@ p, span, td, th {
 /* =====================================================
    BOTÕES – TOUCH FRIENDLY
 ===================================================== */
-button {
+button:not(.chakra-button) {
   width: 100%;
   min-height: 44px;
   border-radius: 10px;
@@ -81,7 +81,7 @@ button {
   cursor: pointer;
 }
 
-button:active {
+button:not(.chakra-button):active {
   transform: translateY(1px);
 }
 
