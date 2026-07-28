@@ -392,7 +392,6 @@ export default function ComandaList({
             bg={brandColor} 
             color="black"
             px={8}
-            w={{ base: '100%', md: 'auto' }}
             isLoading={abrindoComanda}
             isDisabled={abrindoComanda || loadingLista}
           >
@@ -409,14 +408,9 @@ export default function ComandaList({
         mb={6}
         gap={4}
       >
-        <Flex
-          gap={3}
-          flex={1}
-          direction={{ base: 'column', md: 'row' }}
-          align={{ base: 'stretch', md: 'center' }}
-        >
+        <Flex gap={3} flex={1}>
           <Select
-            maxW={{ base: '100%', md: '150px' }}
+            maxW="150px"
             value={status}
             onChange={e => setStatus(e.target.value as Status)}
             bg="dark.800"
@@ -427,7 +421,7 @@ export default function ComandaList({
             <option value="FECHADA">Fechadas</option>
           </Select>
 
-          <InputGroup maxW={{ base: '100%', md: '300px' }}>
+          <InputGroup maxW="300px">
             <InputLeftElement pointerEvents="none"><FiSearch color="gray.500" /></InputLeftElement>
             <Input
               ref={buscaRef}
@@ -448,7 +442,6 @@ export default function ComandaList({
             borderColor="whiteAlpha.300"
             color="white"
             _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
-            w={{ base: '100%', md: 'auto' }}
           >
             Atualizar
           </Button>

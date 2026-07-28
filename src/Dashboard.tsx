@@ -4,6 +4,7 @@ import {
   Alert,
   AlertIcon,
   Button,
+  ButtonGroup,
   SimpleGrid,
   Stat,
   StatLabel,
@@ -146,7 +147,7 @@ export default function Dashboard() {
           <Flex align="center" justify="space-between">
             <Box>
               <StatLabel color={textColor}>{title}</StatLabel>
-              <StatNumber fontSize={{ base: '2xl', md: '3xl' }} fontWeight="bold" color="white">{value}</StatNumber>
+              <StatNumber fontSize="3xl" fontWeight="bold" color="white">{value}</StatNumber>
               {helpText && <StatHelpText mb={0} color="gray.300">{helpText}</StatHelpText>}
             </Box>
             <Box p={3} bg={`${color}.900`} borderRadius="lg" border="1px solid" borderColor={`${color}.700`}>
@@ -163,18 +164,13 @@ export default function Dashboard() {
       <Flex mb={6} justify="space-between" align={{ base: 'start', md: 'center' }} gap={4} wrap="wrap">
         <Heading size="lg">Visão Geral</Heading>
 
-        <Stack
-          direction={{ base: 'column', sm: 'row' }}
-          spacing={2}
-          w={{ base: '100%', md: 'auto' }}
-        >
+        <ButtonGroup isAttached variant="outline" size="sm" flexWrap="wrap">
           <Button
             onClick={() => setPeriodo('hoje')}
             bg={periodo === 'hoje' ? 'brand.500' : 'whiteAlpha.100'}
             color={periodo === 'hoje' ? 'black' : 'white'}
             borderColor={periodo === 'hoje' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'hoje' ? 'brand.400' : 'whiteAlpha.200' }}
-            w={{ base: '100%', sm: 'auto' }}
           >
             Hoje
           </Button>
@@ -184,7 +180,6 @@ export default function Dashboard() {
             color={periodo === 'semana' ? 'black' : 'white'}
             borderColor={periodo === 'semana' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'semana' ? 'brand.400' : 'whiteAlpha.200' }}
-            w={{ base: '100%', sm: 'auto' }}
           >
             Semanal
           </Button>
@@ -194,7 +189,6 @@ export default function Dashboard() {
             color={periodo === 'mes' ? 'black' : 'white'}
             borderColor={periodo === 'mes' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'mes' ? 'brand.400' : 'whiteAlpha.200' }}
-            w={{ base: '100%', sm: 'auto' }}
           >
             Mensal
           </Button>
@@ -204,11 +198,10 @@ export default function Dashboard() {
             color={periodo === 'ano' ? 'black' : 'white'}
             borderColor={periodo === 'ano' ? 'brand.500' : 'whiteAlpha.300'}
             _hover={{ bg: periodo === 'ano' ? 'brand.400' : 'whiteAlpha.200' }}
-            w={{ base: '100%', sm: 'auto' }}
           >
             Anual
           </Button>
-        </Stack>
+        </ButtonGroup>
         <Button
           variant="outline"
           bg="whiteAlpha.100"
@@ -217,7 +210,6 @@ export default function Dashboard() {
           _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
           isLoading={loading}
           onClick={() => loadData(true)}
-          w={{ base: '100%', md: 'auto' }}
         >
           Atualizar
         </Button>

@@ -119,15 +119,9 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
 
   return (
     <Box>
-      <Flex
-        justify="space-between"
-        align={{ base: 'stretch', sm: 'center' }}
-        direction={{ base: 'column', sm: 'row' }}
-        gap={{ base: 3, sm: 4 }}
-        mb={4}
-      >
+      <Flex justify="space-between" align="center" mb={4}>
         <Heading size="md">Adicionar Produtos</Heading>
-        <InputGroup maxW={{ base: '100%', sm: '320px' }}>
+        <InputGroup maxW="300px">
           <InputLeftElement pointerEvents="none">
             <FiSearch color="rgb(209, 213, 219)" />
           </InputLeftElement>
@@ -143,7 +137,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
         </InputGroup>
       </Flex>
       
-      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={{ base: 3, md: 4 }}>
+      <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={4}>
         {produtosFiltrados.map(produto => {
           const qtd = quantidades[produto.id] || 1
           
@@ -154,7 +148,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
               _hover={{ borderColor: 'brand.500', shadow: 'md' }}
               transition="all 0.2s"
             >
-              <CardBody p={{ base: 3, md: 4 }} display="flex" flexDirection="column" h="full">
+              <CardBody p={4} display="flex" flexDirection="column" h="full">
                 <Flex justify="space-between" align="start" mb={2}>
                   <Badge colorScheme={produto.estoque > 0 ? 'green' : 'red'} variant="subtle" fontSize="0.6em">
                     {produto.estoque > 0 ? 'EM ESTOQUE' : 'ESGOTADO'}
@@ -168,7 +162,7 @@ export function ComandaItemForm({ produtos, onAddItem, selectedComandaId }: Prop
                   {produto.nome}
                 </Text>
 
-                <Text fontSize="xs" color="gray.400" mb={3}>
+                <Text fontSize="xs" color="gray.300" mb={3}>
                   Disponivel: {produto.estoque} unidade(s)
                 </Text>
 

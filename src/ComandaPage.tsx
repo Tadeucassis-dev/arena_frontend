@@ -327,8 +327,8 @@ export default function ComandaPage({
         {/* COLUNA DIREITA: RECIBO / CART (MENOR E STICKY) */}
         <Box>
            <Box 
-            position={{ base: 'static', lg: 'sticky' }} 
-            top={{ lg: '100px' }} 
+            position="sticky" 
+            top="100px" 
             bg={bgCard} 
             p={0} 
             borderRadius="xl" 
@@ -337,7 +337,7 @@ export default function ComandaPage({
             overflow="hidden"
             display="flex"
             flexDirection="column"
-            maxH={{ base: 'none', lg: 'calc(100vh - 120px)' }}
+            maxH="calc(100vh - 120px)"
           >
             <Box p={5} bg="dark.900" borderBottom="1px solid" borderColor={borderCard}>
                <Flex align="center" gap={2}>
@@ -359,9 +359,7 @@ export default function ComandaPage({
                 <Flex
                   key={item.id}
                   justify="space-between"
-                  align={{ base: 'stretch', sm: 'center' }}
-                  direction={{ base: 'column', sm: 'row' }}
-                  gap={{ base: 3, sm: 0 }}
+                  align="center"
                   p={4}
                   _hover={{ bg: 'dark.700' }}
                   transition="background 0.2s"
@@ -375,7 +373,7 @@ export default function ComandaPage({
 
                   {/* Controles de quantidade */}
                   {comanda.status === 'ABERTA' && (
-                    <Flex align="center" gap={2} mr={{ base: 0, sm: 4 }}>
+                    <Flex align="center" gap={2} mr={4}>
                       <Button
                         size="xs"
                         colorScheme="red"
@@ -403,7 +401,7 @@ export default function ComandaPage({
                   )}
 
                   {/* Subtotal */}
-                  <Box minW={{ base: 'auto', sm: '100px' }} textAlign={{ base: 'left', sm: 'right' }}>
+                  <Box minW="100px" textAlign="right">
                     {comanda.status === 'ABERTA' && (
                       <Text fontSize="sm" color="gray.400">
                         {item.quantidade} × R$ {(item.produto.preco || 0).toFixed(2)}
