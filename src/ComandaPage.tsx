@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Box,
   Button,
@@ -15,7 +15,14 @@ import {
   Image,
   Icon,
   Spacer,
-  useToast
+  useToast,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useDisclosure
 } from '@chakra-ui/react'
 import { FiArrowLeft, FiTrash2, FiCheckCircle, FiShoppingCart, FiMinus, FiPlus } from 'react-icons/fi'
 
@@ -70,6 +77,8 @@ export default function ComandaPage({
   const [acaoEmAndamento, setAcaoEmAndamento] = useState<'fechar' | 'excluir' | null>(null)
   const [atualizandoItem, setAtualizandoItem] = useState<number | null>(null)
   const toast = useToast()
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const cancelRef = useRef<HTMLButtonElement | null>(null)
 
   async function loadComanda(showPageLoading = true) {
     try {
@@ -101,21 +110,23 @@ export default function ComandaPage({
     await onProdutosAtualizados?.()
   }
 
-  async function handleFechar() {
+  async function confirmarFechar() {
     if (acaoEmAndamento) return
 
     setAcaoEmAndamento('fechar')
     try {
       await onFecharComanda(comandaId)
-      await refresh()
+      onClose()
       toast({
         title: 'Comanda fechada',
-        description: 'A comanda foi finalizada com sucesso',
+        description: `Comanda de ${comanda?.nomeCliente || ''} foi finalizada com sucesso`,
         status: 'success',
         isClosable: true,
         duration: 2500,
       })
+      onVoltar()
     } catch (e: unknown) {
+      onClose()
       toast({
         title: 'Erro ao fechar comanda',
         description: getErrorMessage(e, 'Nao foi possivel fechar a comanda'),
@@ -268,7 +279,7 @@ export default function ComandaPage({
               colorScheme="brand"
               bg={brandColor}
               color="black"
-              onClick={handleFechar}
+              onClick={onOpen}
               isLoading={acaoEmAndamento === 'fechar'}
               isDisabled={!!acaoEmAndamento || atualizandoItem !== null}
               _hover={{ bg: 'brand.400' }}
@@ -426,6 +437,134 @@ export default function ComandaPage({
           </Box>
         </Box>
       </SimpleGrid>
+
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef as any}
+        onClose={onClose}
+        size={{ base: 'xs', sm: 'md' }}
+        isCentered
+        motionPreset="slideInBottom"
+      >
+        <AlertDialogOverlay bg="blackAlpha.700" backdropFilter="blur(4px)">
+          <AlertDialogContent
+            bg="dark.800"
+            border="1px solid"
+            borderColor="brand.500"
+            borderRadius="2xl"
+            shadow="2xl"
+          >
+            <AlertDialogHeader
+              bg="dark.900"
+              borderTopRadius="2xl"
+              borderBottom="1px solid"
+              borderColor="dark.700"
+              py={4}
+              px={6}
+            >
+              <Flex align="center" gap={3}>
+                <Box
+                  p={2}
+                  borderRadius="xl"
+                  bg="brand.500"
+                  color="black"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Icon as={FiCheckCircle} w={5} h={5} />
+                </Box>
+                <Heading size="md" color="white">Fechar Comanda</Heading>
+              </Flex>
+            </AlertDialogHeader>
+
+            <AlertDialogBody px={6} py={5}>
+              <Stack spacing={4}>
+                <Box
+                  p={4}
+                  bg="dark.900"
+                  borderRadius="xl"
+                  border="1px solid"
+                  borderColor="dark.700"
+                >
+                  <Text fontSize="sm" color="gray.400" mb={1}>Cliente</Text>
+                  <Text fontWeight="bold" fontSize="lg" color="white">
+                    {comanda?.nomeCliente || 'Sem nome'}
+                  </Text>
+                  <Flex mt={3} gap={6} wrap="wrap">
+                    <Box>
+                      <Text fontSize="xs" color="gray.400">Comanda</Text>
+                      <Badge mt={1} colorScheme="brand" fontSize="sm">
+                        #{comanda?.id}
+                      </Badge>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.400">Status</Text>
+                      <Badge mt={1} colorScheme="green" fontSize="sm">
+                        ABERTA
+                      </Badge>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.400">Total</Text>
+                      <Text fontWeight="bold" fontSize="md" color="brand.500" mt={1}>
+                        R$ {(comanda?.valorTotal || 0).toFixed(2)}
+                      </Text>
+                    </Box>
+                  </Flex>
+                </Box>
+
+                <Text color="gray.300" fontSize="sm">
+                  Deseja realmente <strong style={{ color: 'white' }}>fechar</strong> esta comanda?
+                  Esta ação <strong style={{ color: '#F56565' }}>não pode ser desfeita</strong>.
+                </Text>
+              </Stack>
+            </AlertDialogBody>
+
+            <AlertDialogFooter
+              bg="dark.900"
+              borderBottomRadius="2xl"
+              borderTop="1px solid"
+              borderColor="dark.700"
+              px={6}
+              py={4}
+            >
+              <Stack
+                direction={{ base: 'column', sm: 'row' }}
+                w="full"
+                spacing={3}
+                justify="flex-end"
+              >
+                <Button
+                  ref={cancelRef}
+                  onClick={onClose}
+                  variant="outline"
+                  bg="whiteAlpha.100"
+                  borderColor="whiteAlpha.300"
+                  color="white"
+                  _hover={{ bg: 'whiteAlpha.200', borderColor: 'whiteAlpha.400' }}
+                  w={{ base: 'full', sm: 'auto' }}
+                  isDisabled={acaoEmAndamento !== null}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmarFechar}
+                  colorScheme="brand"
+                  bg="brand.500"
+                  color="black"
+                  _hover={{ bg: 'brand.400' }}
+                  leftIcon={<FiCheckCircle />}
+                  isLoading={acaoEmAndamento === 'fechar'}
+                  loadingText="Fechando..."
+                  w={{ base: 'full', sm: 'auto' }}
+                >
+                  Sim, Fechar
+                </Button>
+              </Stack>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   )
 }
