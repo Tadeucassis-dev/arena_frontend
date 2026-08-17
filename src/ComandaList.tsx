@@ -80,7 +80,7 @@ export default function ComandaList({
 
   const [openNome, setOpenNome] = useState('')
   const [openTipo, setOpenTipo] = useState<'ALUNO' | 'DAY_USE'>('ALUNO')
-  const [openValor, setOpenValor] = useState('')
+  const [openValor, setOpenValor] = useState('15')
   const [openErrors, setOpenErrors] = useState<{ nome?: string; valorDayUse?: string }>({})
 
   const buscaRef = useRef<HTMLInputElement>(null)

@@ -7,6 +7,12 @@ export type ItemComanda = {
   }
 }
 
+export type Pagamento = {
+  id: number
+  valor: number
+  data: string
+}
+
 export type Comanda = {
   id: number
   nomeCliente?: string
@@ -16,4 +22,5 @@ export type Comanda = {
   valorTotal?: number
   dataAbertura?: string
   dataFechamento?: string | null
+  pagamentos?: Pagamento[]
 }

@@ -46,7 +46,7 @@ export default function ComandaControl({
 }: ComandaControlProps) {
   const [nomeCliente, setNomeCliente] = useState('')
   const [tipoCliente, setTipoCliente] = useState<'ALUNO' | 'DAY_USE'>('ALUNO')
-  const [valorDayUse, setValorDayUse] = useState('')
+  const [valorDayUse, setValorDayUse] = useState('15')
   const [buscarNome, setBuscarNome] = useState('')
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')

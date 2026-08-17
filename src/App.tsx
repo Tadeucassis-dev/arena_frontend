@@ -18,6 +18,7 @@ import {
   deletarProduto,
   abrirComanda,
   fecharComanda,
+  registrarPagamento,
   atualizarComanda,
   deletarComanda,
   adicionarItemComanda,
@@ -184,6 +185,7 @@ export default function App() {
               produtos={produtos}
               onAddItem={adicionarItemComanda}
               onFecharComanda={fecharComanda}
+              onRegistrarPagamento={registrarPagamento}
               onGetComanda={getComanda}
               onDeletarComanda={deletarComanda}
               onProdutosAtualizados={loadProdutos}

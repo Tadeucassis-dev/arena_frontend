@@ -22,13 +22,32 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
-  useDisclosure
+  useDisclosure,
+  FormControl,
+  FormLabel,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Progress,
+  Card,
+  CardBody,
+  Tooltip
 } from '@chakra-ui/react'
-import { FiArrowLeft, FiTrash2, FiCheckCircle, FiShoppingCart, FiMinus, FiPlus } from 'react-icons/fi'
+import {
+  FiArrowLeft,
+  FiTrash2,
+  FiCheckCircle,
+  FiShoppingCart,
+  FiMinus,
+  FiPlus,
+  FiDollarSign,
+  FiClock
+} from 'react-icons/fi'
 
 import { ComandaItemForm } from './ComandaItemForm'
 import Logo from './assets/logoPreta.png'
 import { Produto } from './types/produtos'
+import { Pagamento } from './types/comanda'
 import { atualizarQuantidadeItem, getErrorMessage } from './api'
 
 type ItemComanda = {
@@ -38,12 +57,13 @@ type ItemComanda = {
   subtotal: number
 }
 
-type Comanda = {
+type ComandaLocal = {
   id: number
   nomeCliente: string
   status: 'ABERTA' | 'FECHADA'
   valorTotal?: number
   itens: ItemComanda[]
+  pagamentos?: Pagamento[]
 }
 
 type Props = {
@@ -55,6 +75,7 @@ type Props = {
     quantidade: number
   }) => Promise<any>
   onFecharComanda: (id: number) => Promise<any>
+  onRegistrarPagamento: (comandaId: number, valor: number) => Promise<any>
   onGetComanda: (id: number) => Promise<any>
   onDeletarComanda: (id: number) => Promise<void>
   onProdutosAtualizados?: () => Promise<void> | void
@@ -66,16 +87,18 @@ export default function ComandaPage({
   produtos,
   onAddItem,
   onFecharComanda,
+  onRegistrarPagamento,
   onGetComanda,
   onDeletarComanda,
   onProdutosAtualizados,
   onVoltar,
 }: Props) {
-  const [comanda, setComanda] = useState<Comanda | null>(null)
+  const [comanda, setComanda] = useState<ComandaLocal | null>(null)
   const [err, setErr] = useState('')
   const [carregandoComanda, setCarregandoComanda] = useState(true)
-  const [acaoEmAndamento, setAcaoEmAndamento] = useState<'fechar' | 'excluir' | null>(null)
+  const [acaoEmAndamento, setAcaoEmAndamento] = useState<'fechar' | 'excluir' | 'pagamento' | null>(null)
   const [atualizandoItem, setAtualizandoItem] = useState<number | null>(null)
+  const [valorPagamento, setValorPagamento] = useState('')
   const toast = useToast()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement | null>(null)
@@ -130,6 +153,46 @@ export default function ComandaPage({
       toast({
         title: 'Erro ao fechar comanda',
         description: getErrorMessage(e, 'Nao foi possivel fechar a comanda'),
+        status: 'error',
+        isClosable: true,
+        duration: 4000,
+      })
+    } finally {
+      setAcaoEmAndamento(null)
+    }
+  }
+
+  async function handleRegistrarPagamento() {
+    if (acaoEmAndamento || !comanda || comanda.status !== 'ABERTA') return
+
+    const valorNum = Number(valorPagamento.replace(',', '.'))
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      toast({
+        title: 'Valor inválido',
+        description: 'Informe um valor maior que zero',
+        status: 'warning',
+        isClosable: true,
+        duration: 2500,
+      })
+      return
+    }
+
+    setAcaoEmAndamento('pagamento')
+    try {
+      await onRegistrarPagamento(comandaId, valorNum)
+      setValorPagamento('')
+      await loadComanda(false)
+      toast({
+        title: 'Pagamento registrado',
+        description: `R$ ${valorNum.toFixed(2)} recebido de ${comanda.nomeCliente || ''}`,
+        status: 'success',
+        isClosable: true,
+        duration: 2500,
+      })
+    } catch (e: unknown) {
+      toast({
+        title: 'Erro no pagamento',
+        description: getErrorMessage(e, 'Nao foi possivel registrar o pagamento'),
         status: 'error',
         isClosable: true,
         duration: 4000,
@@ -217,6 +280,31 @@ export default function ComandaPage({
   const borderCard = 'dark.700'
   const brandColor = 'brand.500'
 
+  const pagamentosOrdenados = [...(comanda.pagamentos || [])].sort(
+    (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
+  )
+  const valorTotal = Number(comanda.valorTotal) || 0
+  const valorPago = pagamentosOrdenados.reduce(
+    (sum, p) => sum + (Number(p.valor) || 0),
+    0
+  )
+  const saldoRestante = Math.max(0, valorTotal - valorPago)
+  const porcentagemPaga =
+    valorTotal > 0 ? Math.min(100, (valorPago / valorTotal) * 100) : 0
+
+  function formatarDataHora(iso: string) {
+    try {
+      const d = new Date(iso)
+      const dd = String(d.getDate()).padStart(2, '0')
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const hh = String(d.getHours()).padStart(2, '0')
+      const mi = String(d.getMinutes()).padStart(2, '0')
+      return `${dd}/${mm} ${hh}:${mi}`
+    } catch {
+      return ''
+    }
+  }
+
   return (
     <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }}>
       {/* TOPO / HEADER */}
@@ -245,7 +333,7 @@ export default function ComandaPage({
               <Heading size="md" color="white">
                 Comanda #{comanda.id}
               </Heading>
-              <Flex align="center" gap={2}>
+              <Flex align="center" gap={2} wrap="wrap">
                  <Text color="gray.300" fontSize="sm">Cliente:</Text>
                  <Text fontWeight="bold" fontSize="lg">{comanda.nomeCliente || '—'}</Text>
                  <Badge ml={2} colorScheme={comanda.status === 'ABERTA' ? 'green' : 'red'}>
@@ -308,6 +396,220 @@ export default function ComandaPage({
           {err}
         </Alert>
       )}
+
+      {/* RESUMO FINANCEIRO + PAGAMENTOS */}
+      <Stack spacing={4} mb={8}>
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+          <Card bg={bgCard} border="1px solid" borderColor={borderCard} borderRadius="xl" overflow="hidden">
+            <CardBody py={4}>
+              <Flex align="center" gap={2} mb={2}>
+                <Icon as={FiShoppingCart} color="gray.400" />
+                <Text fontSize="sm" color="gray.400">Total da Conta</Text>
+              </Flex>
+              <Heading size="lg" color="white">
+                R$ {valorTotal.toFixed(2)}
+              </Heading>
+            </CardBody>
+          </Card>
+
+          <Card bg={bgCard} border="1px solid" borderColor={borderCard} borderRadius="xl" overflow="hidden">
+            <CardBody py={4}>
+              <Flex align="center" gap={2} mb={2}>
+                <Icon as={FiDollarSign} color="green.400" />
+                <Text fontSize="sm" color="gray.400">Recebido</Text>
+              </Flex>
+              <Heading size="lg" color="green.400">
+                R$ {valorPago.toFixed(2)}
+              </Heading>
+              <Flex align="center" gap={3} mt={3}>
+                <Progress
+                  flex="1"
+                  value={porcentagemPaga}
+                  colorScheme="green"
+                  bg="dark.700"
+                  borderRadius="full"
+                  size="sm"
+                />
+                <Text fontSize="xs" color="gray.400" minW="45px" textAlign="right">
+                  {porcentagemPaga.toFixed(0)}%
+                </Text>
+              </Flex>
+            </CardBody>
+          </Card>
+
+          <Card
+            bg={saldoRestante > 0 ? 'rgba(229, 62, 62, 0.06)' : 'rgba(72, 187, 120, 0.06)'}
+            border="1px solid"
+            borderColor={saldoRestante > 0 ? 'red.900' : 'green.900'}
+            borderRadius="xl"
+            overflow="hidden"
+          >
+            <CardBody py={4}>
+              <Flex align="center" gap={2} mb={2}>
+                <Icon as={FiClock} color={saldoRestante > 0 ? 'red.400' : 'green.400'} />
+                <Text fontSize="sm" color="gray.400">
+                  {saldoRestante > 0 ? 'Saldo Restante' : 'Quitado'}
+                </Text>
+              </Flex>
+              <Heading
+                size="lg"
+                color={saldoRestante > 0 ? 'red.300' : 'green.400'}
+              >
+                R$ {saldoRestante.toFixed(2)}
+              </Heading>
+              <Text fontSize="xs" color="gray.400" mt={3}>
+                {pagamentosOrdenados.length} pagamento(s) registrado(s)
+              </Text>
+            </CardBody>
+          </Card>
+        </SimpleGrid>
+
+        {comanda.status === 'ABERTA' && saldoRestante > 0 && (
+          <Card bg={bgCard} border="1px solid" borderColor={borderCard} borderRadius="xl" overflow="hidden">
+            <CardBody>
+              <Flex
+                direction={{ base: 'column', md: 'row' }}
+                align={{ md: 'end' }}
+                gap={4}
+              >
+                <FormControl flex="1">
+                  <FormLabel color="gray.300" fontWeight="semibold">
+                    Registrar Pagamento Parcial
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftElement pointerEvents="none">
+                      <Text color={brandColor} fontWeight="bold">
+                        R$
+                      </Text>
+                    </InputLeftElement>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={saldoRestante}
+                      value={valorPagamento}
+                      onChange={e => setValorPagamento(e.target.value)}
+                      placeholder={`Ex.: ${saldoRestante > 40 ? '40,00' : saldoRestante.toFixed(2)}`}
+                      bg="dark.900"
+                      borderColor="dark.700"
+                      color="white"
+                      _placeholder={{ color: 'gray.500' }}
+                      isDisabled={!!acaoEmAndamento}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleRegistrarPagamento()
+                        }
+                      }}
+                    />
+                  </InputGroup>
+                </FormControl>
+
+                <Flex gap={2} w={{ base: '100%', md: 'auto' }}>
+                  <Tooltip label="Paga metade do saldo">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      color="gray.300"
+                      borderColor="whiteAlpha.300"
+                      bg="whiteAlpha.50"
+                      onClick={() =>
+                        setValorPagamento(
+                          String((Math.round((saldoRestante / 2) * 100) / 100).toFixed(2))
+                        )
+                      }
+                      isDisabled={!!acaoEmAndamento}
+                      minW={{ base: '33%', md: 'auto' }}
+                    >
+                      50%
+                    </Button>
+                  </Tooltip>
+                  <Tooltip label="Paga o saldo total">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      color="gray.300"
+                      borderColor="whiteAlpha.300"
+                      bg="whiteAlpha.50"
+                      onClick={() => setValorPagamento(saldoRestante.toFixed(2))}
+                      isDisabled={!!acaoEmAndamento}
+                      minW={{ base: '33%', md: 'auto' }}
+                    >
+                      Total
+                    </Button>
+                  </Tooltip>
+                  <Button
+                    leftIcon={<FiDollarSign />}
+                    size="lg"
+                    colorScheme="green"
+                    onClick={handleRegistrarPagamento}
+                    isLoading={acaoEmAndamento === 'pagamento'}
+                    loadingText="Registrando..."
+                    isDisabled={!!acaoEmAndamento}
+                    flex="1"
+                    minW={{ base: '33%', md: '200px' }}
+                  >
+                    Receber
+                  </Button>
+                </Flex>
+              </Flex>
+            </CardBody>
+          </Card>
+        )}
+
+        {pagamentosOrdenados.length > 0 && (
+          <Card bg={bgCard} border="1px solid" borderColor={borderCard} borderRadius="xl" overflow="hidden">
+            <Box
+              p={4}
+              bg="dark.900"
+              borderBottom="1px solid"
+              borderColor={borderCard}
+            >
+              <Flex align="center" gap={2}>
+                <Icon as={FiDollarSign} color={brandColor} />
+                <Heading size="sm" color="white">Histórico de Pagamentos</Heading>
+                <Spacer />
+                <Badge colorScheme="green">{pagamentosOrdenados.length}</Badge>
+              </Flex>
+            </Box>
+            <Stack divider={<Divider borderColor="dark.700" />}>
+              {pagamentosOrdenados.map(p => (
+                <Flex
+                  key={p.id}
+                  px={4}
+                  py={3}
+                  justify="space-between"
+                  align="center"
+                  _hover={{ bg: 'whiteAlpha.50' }}
+                >
+                  <Flex align="center" gap={3}>
+                    <Box
+                      p={2}
+                      borderRadius="full"
+                      bg="green.900"
+                      color="green.300"
+                      display="flex"
+                    >
+                      <Icon as={FiDollarSign} />
+                    </Box>
+                    <Box>
+                      <Text fontWeight="semibold" color="white">
+                        R$ {(Number(p.valor) || 0).toFixed(2)}
+                      </Text>
+                      <Text fontSize="xs" color="gray.400">
+                        {formatarDataHora(p.data)}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  <Badge colorScheme="green" fontSize="sm">
+                    Recebido
+                  </Badge>
+                </Flex>
+              ))}
+            </Stack>
+          </Card>
+        )}
+      </Stack>
 
       {/* CONTEÚDO PRINCIPAL - GRID RESPONSIVO */}
       <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={8}>
@@ -427,12 +729,38 @@ export default function ComandaPage({
             </Stack>
 
             <Box mt="auto" bg="dark.900" p={5} borderTop="1px solid" borderColor={borderCard}>
-             <Flex justify="space-between" align="center">
-                <Text fontSize="lg" color="gray.300">Total</Text>
-                <Heading size="lg" color={brandColor}>
-                  R$ {(comanda.valorTotal || 0).toFixed(2)}
-                </Heading>
-             </Flex>
+             <Stack spacing={3}>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="sm" color="gray.400">Total Consumo</Text>
+                  <Text fontWeight="semibold" color="gray.300">
+                    R$ {valorTotal.toFixed(2)}
+                  </Text>
+                </Flex>
+
+                {valorPago > 0 && (
+                  <>
+                    <Flex justify="space-between" align="center">
+                      <Text fontSize="sm" color="gray.400">Recebido (parcial)</Text>
+                      <Text fontWeight="semibold" color="green.400">
+                        − R$ {valorPago.toFixed(2)}
+                      </Text>
+                    </Flex>
+                    <Divider borderColor="dark.700" />
+                  </>
+                )}
+
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="md" fontWeight="bold" color={saldoRestante > 0 ? 'white' : 'green.400'}>
+                    {saldoRestante > 0 ? 'Saldo a Pagar' : 'Total Quitado'}
+                  </Text>
+                  <Heading
+                    size="lg"
+                    color={saldoRestante > 0 ? brandColor : 'green.400'}
+                  >
+                    R$ {saldoRestante.toFixed(2)}
+                  </Heading>
+                </Flex>
+             </Stack>
           </Box>
           </Box>
         </Box>
@@ -507,11 +835,57 @@ export default function ComandaPage({
                     <Box>
                       <Text fontSize="xs" color="gray.400">Total</Text>
                       <Text fontWeight="bold" fontSize="md" color="brand.500" mt={1}>
-                        R$ {(comanda?.valorTotal || 0).toFixed(2)}
+                        R$ {valorTotal.toFixed(2)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontSize="xs" color="gray.400">Saldo</Text>
+                      <Text
+                        fontWeight="bold"
+                        fontSize="md"
+                        color={saldoRestante > 0 ? 'red.300' : 'green.400'}
+                        mt={1}
+                      >
+                        R$ {saldoRestante.toFixed(2)}
                       </Text>
                     </Box>
                   </Flex>
                 </Box>
+
+                {saldoRestante > 0 ? (
+                  <Alert
+                    status="warning"
+                    borderRadius="xl"
+                    bg="rgba(230, 180, 60, 0.08)"
+                    border="1px solid"
+                    borderColor="yellow.900"
+                  >
+                    <AlertIcon color="yellow.400" />
+                    <Box fontSize="sm" color="gray.300">
+                      <Text fontWeight="semibold" color="white">
+                        Saldo pendente: R$ {saldoRestante.toFixed(2)}
+                      </Text>
+                      <Text>
+                        Fechar a comanda com saldo em aberto significa marcar o pagamento como
+                        realizado em momento posterior.
+                      </Text>
+                    </Box>
+                  </Alert>
+                ) : (
+                  <Alert
+                    status="success"
+                    borderRadius="xl"
+                    bg="rgba(72, 187, 120, 0.08)"
+                    border="1px solid"
+                    borderColor="green.900"
+                  >
+                    <AlertIcon color="green.400" />
+                    <Box fontSize="sm" color="gray.300">
+                      <Text fontWeight="semibold" color="white">Conta quitada</Text>
+                      <Text>O valor total já foi recebido integralmente.</Text>
+                    </Box>
+                  </Alert>
+                )}
 
                 <Text color="gray.300" fontSize="sm">
                   Deseja realmente <strong style={{ color: 'white' }}>fechar</strong> esta comanda?
