@@ -278,7 +278,8 @@ const MockAPI = {
       status: 'ABERTA',
       itens: [],
       valorTotal: comandaPayload.valorDayUse || 0,
-      dataAbertura: new Date().toISOString()
+      dataAbertura: new Date().toISOString(),
+      pagamentos: []
     }
     if (!db.comandas) db.comandas = []
     db.comandas.push(c)
@@ -291,8 +292,34 @@ const MockAPI = {
     const c = (db.comandas || []).find((x: any) => x.id === Number(id))
     if (!c) throw new Error('Comanda não encontrada')
     c.status = 'FECHADA'
+    c.dataFechamento = c.dataFechamento || new Date().toISOString()
     saveDb()
     return c
+  },
+
+  registrarPagamento: async (comandaId: number, valor: number) => {
+    await delay()
+    const valorNum = Number(valor)
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      throw new Error('Informe um valor de pagamento maior que zero')
+    }
+    const c = (db.comandas || []).find((x: any) => x.id === Number(comandaId))
+    if (!c) throw new Error('Comanda não encontrada')
+    if (c.status === 'FECHADA') throw new Error('Não é possível registrar pagamento em comanda fechada')
+    if (!c.pagamentos) c.pagamentos = []
+    const totalPago = c.pagamentos.reduce((sum: number, p: any) => sum + (Number(p.valor) || 0), 0)
+    const saldoAtual = (Number(c.valorTotal) || 0) - totalPago
+    if (valorNum > saldoAtual + 0.001) {
+      throw new Error(`Valor do pagamento excede o saldo restante de R$ ${saldoAtual.toFixed(2)}`)
+    }
+    const pagamento = {
+      id: Date.now(),
+      valor: valorNum,
+      data: new Date().toISOString()
+    }
+    c.pagamentos.push(pagamento)
+    saveDb()
+    return { pagamento, comanda: c }
   },
 
   atualizarComanda: async (id: number, payload: any) => {
@@ -506,6 +533,14 @@ export function fecharComanda(id: number) {
   if (USE_MOCK) return MockAPI.fecharComanda(id)
   return request(`/comandas/${id}/fechar`, {
     method: 'POST',
+  })
+}
+
+export function registrarPagamento(comandaId: number, valor: number) {
+  if (USE_MOCK) return MockAPI.registrarPagamento(comandaId, valor)
+  return request(`/comandas/${comandaId}/pagamentos`, {
+    method: 'POST',
+    body: JSON.stringify({ valor }),
   })
 }
 

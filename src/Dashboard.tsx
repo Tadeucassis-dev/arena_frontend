@@ -22,7 +22,7 @@ import {
   Spinner,
   useToast
 } from '@chakra-ui/react'
-import { FiDollarSign, FiUsers, FiShoppingBag, FiActivity } from 'react-icons/fi'
+import { FiDollarSign, FiUsers, FiShoppingBag, FiActivity, FiCheckCircle, FiClock } from 'react-icons/fi'
 import { listarComandas, getProdutos, getErrorMessage } from './api'
 import { Comanda } from './types/comanda'
 import { Produto } from './types/produtos'
@@ -79,8 +79,16 @@ export default function Dashboard() {
     loadData()
   }, [])
 
-  function getValorComanda(comanda: Comanda & { total?: number }) {
+  function getValorComanda(comanda: Comanda & { total?: number; pagamentos?: any[] }) {
     return Number(comanda.valorTotal ?? comanda.total ?? 0)
+  }
+
+  function getValorPago(comanda: Comanda & { pagamentos?: any[] }) {
+    if (!Array.isArray(comanda.pagamentos)) return 0
+    return comanda.pagamentos.reduce(
+      (sum: number, p: any) => sum + (Number(p?.valor) || 0),
+      0
+    )
   }
 
   function isComandaAberta(comanda: Comanda & { dataFechamento?: string | null }) {
@@ -126,11 +134,19 @@ export default function Dashboard() {
   }
 
   const comandasAbertas = comandas.filter(isComandaAberta)
-  const valorEmAberto = comandasAbertas.reduce((acc, curr) => acc + getValorComanda(curr), 0)
+  const valorTotalEmAberto = comandasAbertas.reduce((acc, curr) => acc + getValorComanda(curr), 0)
+  const valorRecebidoEmAberto = comandasAbertas.reduce((acc, curr) => acc + getValorPago(curr), 0)
+  const valorEmAberto = Math.max(0, valorTotalEmAberto - valorRecebidoEmAberto)
+
   const comandasFechadas = comandas.filter(c => !isComandaAberta(c))
   const faturamentoPeriodo = comandasFechadas
     .filter(c => isNoPeriodo(c.dataFechamento ?? c.dataAbertura, periodo))
     .reduce((acc, curr) => acc + getValorComanda(curr), 0)
+  const recebidoNoPeriodo = comandas.reduce((acc, curr) => {
+    const pagos = (curr as any).pagamentos || []
+    const relevantes = pagos.filter((p: any) => isNoPeriodo(p?.data, periodo))
+    return acc + relevantes.reduce((sum: number, p: any) => sum + (Number(p?.valor) || 0), 0)
+  }, 0)
 
   const estoqueBaixo = produtos.filter(p => p.estoque < 5).length
   const titulosPeriodo: Record<PeriodoFaturamento, string> = {
@@ -229,7 +245,7 @@ export default function Dashboard() {
         </Alert>
       )}
       
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 5 }} spacing={6} mb={8}>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 6 }} spacing={6} mb={8}>
         <CardStats 
           title={titulosPeriodo[periodo]}
           value={`R$ ${faturamentoPeriodo.toFixed(2)}`}
@@ -238,9 +254,16 @@ export default function Dashboard() {
           helpText={<Flex align="center"><StatArrow type="increase" /> Comandas fechadas</Flex>}
         />
         <CardStats
-          title="Faturamento em Aberto"
+          title={`Recebido no ${periodo === 'hoje' ? 'dia' : periodo === 'semana' ? 'periodo' : periodo === 'mes' ? 'mes' : 'ano'}`}
+          value={`R$ ${recebidoNoPeriodo.toFixed(2)}`}
+          icon={FiCheckCircle}
+          color="teal"
+          helpText="Pagamentos parciais + totais"
+        />
+        <CardStats
+          title="Saldo em Aberto"
           value={`R$ ${valorEmAberto.toFixed(2)}`}
-          icon={FiDollarSign}
+          icon={FiClock}
           color="yellow"
           helpText={`${comandasAbertas.length} comandas pendentes`}
         />
